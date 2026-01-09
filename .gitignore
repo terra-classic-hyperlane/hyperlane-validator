@@ -3,11 +3,13 @@
 
 # Arquivos de configuração com chaves privadas
 hyperlane/validator.*.json
-hyperlane/relayer.json
+hyperlane/relayer*.json
 
 # Dados dos agentes
 validator/
 relayer/
+validator-testnet/
+relayer-testnet/
 
 # Logs
 *.log
