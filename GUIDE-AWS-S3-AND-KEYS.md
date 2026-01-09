@@ -1,6 +1,6 @@
 # 🔐 Complete Guide: AWS S3 Configuration and Private Key Creation
 
-**Last Updated**: December 22, 2025 at 11:13:59 AM EST (US Eastern Time)
+**Last Updated**: January 9, 2026 at 10:08:34 AM EST (US Eastern Time)
 
 ---
 
@@ -1556,17 +1556,140 @@ solana balance YOUR_PUBLIC_ADDRESS
 
 ### 4.3. Test Validator
 
+#### 🚀 Quick Start Commands
+
+##### Testnet Commands
+
+**Start testnet services:**
 ```bash
-# Start validator
-docker-compose up -d validator-terraclassic
-
-# View logs
-docker logs -f hpl-validator-terraclassic
-
-# Look for success messages:
-# - "Successfully announced validator"
-# - "Checkpoint synced to S3"
+docker-compose -f docker-compose-testnet.yml up -d
 ```
+
+**View testnet logs:**
+```bash
+# All services
+docker-compose -f docker-compose-testnet.yml logs -f
+
+# Specific service
+docker-compose -f docker-compose-testnet.yml logs -f relayer
+docker-compose -f docker-compose-testnet.yml logs -f validator-terraclassic
+```
+
+**Check testnet status:**
+```bash
+docker-compose -f docker-compose-testnet.yml ps
+```
+
+**Stop testnet services:**
+```bash
+docker-compose -f docker-compose-testnet.yml down
+```
+
+**Restart testnet services:**
+```bash
+docker-compose -f docker-compose-testnet.yml restart
+```
+
+##### Production Commands
+
+**Start production services:**
+```bash
+docker-compose -f docker-compose.yml up -d
+```
+
+**View production logs:**
+```bash
+# All services
+docker-compose -f docker-compose.yml logs -f
+
+# Specific service
+docker-compose -f docker-compose.yml logs -f relayer
+docker-compose -f docker-compose.yml logs -f validator-terraclassic
+```
+
+**Check production status:**
+```bash
+docker-compose -f docker-compose.yml ps
+```
+
+**Stop production services:**
+```bash
+docker-compose -f docker-compose.yml down
+```
+
+**Restart production services:**
+```bash
+docker-compose -f docker-compose.yml restart
+```
+
+##### Run Both Simultaneously
+
+Since testnet and production use different ports and volumes, you can run both at the same time:
+
+```bash
+# Start both environments
+docker-compose -f docker-compose-testnet.yml up -d
+docker-compose -f docker-compose.yml up -d
+
+# Check both
+docker-compose -f docker-compose-testnet.yml ps
+docker-compose -f docker-compose.yml ps
+
+# Stop both
+docker-compose -f docker-compose-testnet.yml down
+docker-compose -f docker-compose.yml down
+```
+
+##### 📝 Key Differences
+
+| Feature | Testnet (`docker-compose-testnet.yml`) | Production (`docker-compose.yml`) |
+|---------|----------------------------------------|-----------------------------------|
+| **Network** | Testnet | Mainnet |
+| **Container Names** | `hpl-relayer-testnet`, `hpl-validator-terraclassic-testnet` | `hpl-relayer`, `hpl-validator-terraclassic` |
+| **Config Files** | `agent-config.docker-testnet.json`, `relayer-testnet.json` | `agent-config.docker-mainnet.json`, `relayer-mainnet.json` |
+| **Relayer Port** | `9112:9090` | `9110:9090` |
+| **Validator Port** | `9122:9090` | `9121:9090` |
+| **Relayer Data Volume** | `./relayer-testnet:/etc/data` | `./relayer:/etc/data` |
+| **Validator Data Volume** | `./validator-testnet:/etc/data` | `./validator:/etc/data` |
+| **Purpose** | Testing and validation | Production deployment |
+| **Risk Level** | Low (test tokens) | High (real tokens) |
+| **Can Run Simultaneously** | ✅ Yes (different ports & volumes) | ✅ Yes (different ports & volumes) |
+
+##### 🌐 Accessing Services (Ports)
+
+Since testnet and production use different ports, you can run both environments simultaneously:
+
+**Testnet Services:**
+- Relayer metrics/API: `http://localhost:9112`
+- Validator metrics: `http://localhost:9122`
+
+**Production Services:**
+- Relayer metrics/API: `http://localhost:9110`
+- Validator metrics: `http://localhost:9121`
+
+**Example: Access testnet relayer metrics:**
+```bash
+curl http://localhost:9112/metrics
+```
+
+**Example: Access production validator metrics:**
+```bash
+curl http://localhost:9121/metrics
+```
+
+##### ✅ Look for Success Messages
+
+When viewing logs, look for these success messages:
+
+**For Validator:**
+- `"Successfully announced validator"`
+- `"Checkpoint synced to S3"`
+- `"Validator running"`
+
+**For Relayer:**
+- `"Relayer started"`
+- `"Processing messages"`
+- `"Message relayed successfully"`
 
 ### 4.4. Verify Checkpoints in S3
 
