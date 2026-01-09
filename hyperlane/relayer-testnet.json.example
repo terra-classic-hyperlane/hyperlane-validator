@@ -1,0 +1,65 @@
+{
+  "db": "/etc/data/db",
+  "relayChains": "terraclassictestnet,bsctestnet,solanatestnet",
+  "allowLocalCheckpointSyncers": "false",
+  "gasPaymentEnforcement": [
+    {
+      "type": "none"
+    }
+  ],
+  "whitelist": [
+    {
+      "originDomain": [
+        1325
+      ],
+      "destinationDomain": [
+        97
+      ]
+    },
+    {
+      "originDomain": [
+        97
+      ],
+      "destinationDomain": [
+        1325
+      ]
+    },
+    {
+      "originDomain": [
+        1325
+      ],
+      "destinationDomain": [
+        1399811150
+      ]
+    },
+    {
+      "originDomain": [
+        1399811150
+      ],
+      "destinationDomain": [
+        1325
+      ]
+    }
+  ],
+  "chains": {
+    "bsctestnet": {
+      "signer": {
+        "type": "hexKey",
+        "key": "0xYOUR_PRIVATE_KEY_HERE"
+      }
+    },
+    "solanatestnet": {
+      "signer": {
+        "type": "hexKey",
+        "key": "0xYOUR_PRIVATE_KEY_HERE"
+      }
+    },
+    "terraclassictestnet": {
+      "signer": {
+        "type": "cosmosKey",
+        "key": "0xYOUR_PRIVATE_KEY_HERE",
+        "prefix": "terra"
+      }
+    }
+  }
+}

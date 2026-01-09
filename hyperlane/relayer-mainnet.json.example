@@ -1,0 +1,38 @@
+{
+  "db": "/etc/data/db",
+  "relayChains": "terraclassic,bsc,solana",
+  "allowLocalCheckpointSyncers": "false",
+  "gasPaymentEnforcement": [{ "type": "none" }],
+  
+  "whitelist": [
+    {
+      "originDomain": [13251],
+      "destinationDomain": [56]
+    },
+    {
+      "originDomain": [56],
+      "destinationDomain": [13251]
+    }
+  ],
+  "chains": {
+    "bsc": {
+      "signer": {
+        "type": "hexKey",
+        "key": "0xYOUR_PRIVATE_KEY_HERE"
+      }
+    },
+    "solana": {
+      "signer": {
+        "type": "hexKey",
+        "key": "0xYOUR_PRIVATE_KEY_HERE"
+      }
+    },
+    "terraclassic": {
+      "signer": {
+        "type": "cosmosKey",
+        "key": "0xYOUR_PRIVATE_KEY_HERE",
+        "prefix": "terra"
+      }
+    }
+  }
+}
