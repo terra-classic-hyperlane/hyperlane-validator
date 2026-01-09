@@ -1,6 +1,6 @@
 # 🐳 Docker and Docker Compose Installation Guide for Ubuntu
 
-**Last Updated**: January 9, 2026 at 09:47:53 AM EST (US Eastern Time)
+**Last Updated**: January 9, 2026 at 09:59:20 AM EST (US Eastern Time)
 
 ---
 
@@ -575,35 +575,89 @@ This repository contains **two Docker Compose configuration files**:
 
 **⚠️ CRITICAL**: Always test your configuration on testnet before running in production!
 
-1. **First, test everything on testnet:**
-   ```bash
-   # Start testnet services
-   docker-compose -f docker-compose-testnet.yml up -d
-   
-   # Check logs
-   docker-compose -f docker-compose-testnet.yml logs -f
-   
-   # Check status
-   docker-compose -f docker-compose-testnet.yml ps
-   
-   # Stop testnet services
-   docker-compose -f docker-compose-testnet.yml down
-   ```
+### 🚀 Quick Start Commands
 
-2. **Only after successful testing, proceed to production:**
-   ```bash
-   # Start production services
-   docker-compose -f docker-compose.yml up -d
-   
-   # Check logs
-   docker-compose -f docker-compose.yml logs -f
-   
-   # Check status
-   docker-compose -f docker-compose.yml ps
-   
-   # Stop production services
-   docker-compose -f docker-compose.yml down
-   ```
+#### Testnet Commands
+
+**Start testnet services:**
+```bash
+docker-compose -f docker-compose-testnet.yml up -d
+```
+
+**View testnet logs:**
+```bash
+# All services
+docker-compose -f docker-compose-testnet.yml logs -f
+
+# Specific service
+docker-compose -f docker-compose-testnet.yml logs -f relayer
+docker-compose -f docker-compose-testnet.yml logs -f validator-terraclassic
+```
+
+**Check testnet status:**
+```bash
+docker-compose -f docker-compose-testnet.yml ps
+```
+
+**Stop testnet services:**
+```bash
+docker-compose -f docker-compose-testnet.yml down
+```
+
+**Restart testnet services:**
+```bash
+docker-compose -f docker-compose-testnet.yml restart
+```
+
+#### Production Commands
+
+**Start production services:**
+```bash
+docker-compose -f docker-compose.yml up -d
+```
+
+**View production logs:**
+```bash
+# All services
+docker-compose -f docker-compose.yml logs -f
+
+# Specific service
+docker-compose -f docker-compose.yml logs -f relayer
+docker-compose -f docker-compose.yml logs -f validator-terraclassic
+```
+
+**Check production status:**
+```bash
+docker-compose -f docker-compose.yml ps
+```
+
+**Stop production services:**
+```bash
+docker-compose -f docker-compose.yml down
+```
+
+**Restart production services:**
+```bash
+docker-compose -f docker-compose.yml restart
+```
+
+#### Run Both Simultaneously
+
+Since testnet and production use different ports and volumes, you can run both at the same time:
+
+```bash
+# Start both environments
+docker-compose -f docker-compose-testnet.yml up -d
+docker-compose -f docker-compose.yml up -d
+
+# Check both
+docker-compose -f docker-compose-testnet.yml ps
+docker-compose -f docker-compose.yml ps
+
+# Stop both
+docker-compose -f docker-compose-testnet.yml down
+docker-compose -f docker-compose.yml down
+```
 
 ### 📝 Key Differences
 
@@ -619,52 +673,6 @@ This repository contains **two Docker Compose configuration files**:
 | **Purpose** | Testing and validation | Production deployment |
 | **Risk Level** | Low (test tokens) | High (real tokens) |
 | **Can Run Simultaneously** | ✅ Yes (different ports & volumes) | ✅ Yes (different ports & volumes) |
-
-### 🔍 Common Commands for Both Environments
-
-**For Testnet:**
-```bash
-# Start in background
-docker-compose -f docker-compose-testnet.yml up -d
-
-# View logs
-docker-compose -f docker-compose-testnet.yml logs -f
-
-# View logs for specific service
-docker-compose -f docker-compose-testnet.yml logs -f validator-terraclassic
-docker-compose -f docker-compose-testnet.yml logs -f relayer
-
-# Check status
-docker-compose -f docker-compose-testnet.yml ps
-
-# Stop services
-docker-compose -f docker-compose-testnet.yml down
-
-# Restart services
-docker-compose -f docker-compose-testnet.yml restart
-```
-
-**For Production:**
-```bash
-# Start in background
-docker-compose -f docker-compose.yml up -d
-
-# View logs
-docker-compose -f docker-compose.yml logs -f
-
-# View logs for specific service
-docker-compose -f docker-compose.yml logs -f validator-terraclassic
-docker-compose -f docker-compose.yml logs -f relayer
-
-# Check status
-docker-compose -f docker-compose.yml ps
-
-# Stop services
-docker-compose -f docker-compose.yml down
-
-# Restart services
-docker-compose -f docker-compose.yml restart
-```
 
 ### 🌐 Accessing Services (Ports)
 
