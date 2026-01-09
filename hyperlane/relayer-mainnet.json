@@ -15,19 +15,19 @@
     }
   ],
   "chains": {
-    "bsctestnet": {
+    "bsc": {
       "signer": {
         "type": "hexKey",
         "key": "0xYOUR_PRIVATE_KEY_HERE"
       }
     },
-    "solanatestnet": {
+    "solana": {
       "signer": {
         "type": "hexKey",
         "key": "0xYOUR_PRIVATE_KEY_HERE"
       }
     },
-    "terraclassictestnet": {
+    "terraclassic": {
       "signer": {
         "type": "cosmosKey",
         "key": "0xYOUR_PRIVATE_KEY_HERE",

@@ -1,7 +1,7 @@
 version: '2'
 services:
   relayer:
-    container_name: hpl-relayer
+    container_name: hpl-relayer-testnet
     image: gcr.io/abacus-labs-dev/hyperlane-agent:1.7.0
     user: root
     entrypoint: ['sh', '-c']
@@ -14,17 +14,17 @@ services:
     command:
       - |
         rm -rf /app/config/* && \
-        cp "/etc/hyperlane/agent-config.docker-mainnet.json" "/app/config/agent-config.json" && \
-        CONFIG_FILES="/etc/hyperlane/relayer-mainnet.json" \
+        cp "/etc/hyperlane/agent-config.docker-testnet.json" "/app/config/agent-config.json" && \
+        CONFIG_FILES="/etc/hyperlane/relayer-testnet.json" \
           ./relayer --allowLocalCheckpointSyncers false --metrics 0.0.0.0:9090 --api 0.0.0.0:9090
     ports:
-      - 9110:9090
+      - 9112:9090
     volumes:
       - ./hyperlane:/etc/hyperlane
-      - ./relayer:/etc/data
+      - ./relayer-testnet:/etc/data
 
   validator-terraclassic:
-    container_name: hpl-validator-terraclassic
+    container_name: hpl-validator-terraclassic-testnet
     image: gcr.io/abacus-labs-dev/hyperlane-agent:1.7.0
     user: root
     entrypoint: ['sh', '-c']
@@ -37,11 +37,11 @@ services:
     command:
       - |
         rm -rf /app/config/* && \
-        cp "/etc/hyperlane/agent-config.docker-mainnet.json" "/app/config/agent-config.json" && \
-        CONFIG_FILES="/etc/hyperlane/validator.terraclassic.json" \
+        cp "/etc/hyperlane/agent-config.docker-testnet.json" "/app/config/agent-config.json" && \
+        CONFIG_FILES="/etc/hyperlane/validator.terraclassic-testnet.json" \
           ./validator --metrics 0.0.0.0:9090
     ports:
-      - 9121:9090
+      - 9122:9090
     volumes:
       - ./hyperlane:/etc/hyperlane
-      - ./validator:/etc/data
+      - ./validator-testnet:/etc/data

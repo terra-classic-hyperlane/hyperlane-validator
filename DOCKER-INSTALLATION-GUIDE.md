@@ -1,5 +1,9 @@
 # 🐳 Docker and Docker Compose Installation Guide for Ubuntu
 
+**Last Updated**: January 9, 2026 at 09:47:53 AM EST (US Eastern Time)
+
+---
+
 This guide provides step-by-step instructions for installing Docker and Docker Compose on Ubuntu Linux.
 
 ---
@@ -556,7 +560,153 @@ docker-compose exec <service> <command>  # Execute command in service
 
 ---
 
+---
+
+## Running Hyperlane Validator and Relayer
+
+### ⚠️ Important: Testnet vs Production
+
+This repository contains **two Docker Compose configuration files**:
+
+1. **`docker-compose-testnet.yml`** - For testing on testnet networks
+2. **`docker-compose.yml`** - For production/mainnet networks
+
+### 🧪 Recommended Workflow: Test First on Testnet
+
+**⚠️ CRITICAL**: Always test your configuration on testnet before running in production!
+
+1. **First, test everything on testnet:**
+   ```bash
+   # Start testnet services
+   docker-compose -f docker-compose-testnet.yml up -d
+   
+   # Check logs
+   docker-compose -f docker-compose-testnet.yml logs -f
+   
+   # Check status
+   docker-compose -f docker-compose-testnet.yml ps
+   
+   # Stop testnet services
+   docker-compose -f docker-compose-testnet.yml down
+   ```
+
+2. **Only after successful testing, proceed to production:**
+   ```bash
+   # Start production services
+   docker-compose -f docker-compose.yml up -d
+   
+   # Check logs
+   docker-compose -f docker-compose.yml logs -f
+   
+   # Check status
+   docker-compose -f docker-compose.yml ps
+   
+   # Stop production services
+   docker-compose -f docker-compose.yml down
+   ```
+
+### 📝 Key Differences
+
+| Feature | Testnet (`docker-compose-testnet.yml`) | Production (`docker-compose.yml`) |
+|---------|----------------------------------------|-----------------------------------|
+| **Network** | Testnet | Mainnet |
+| **Container Names** | `hpl-relayer-testnet`, `hpl-validator-terraclassic-testnet` | `hpl-relayer`, `hpl-validator-terraclassic` |
+| **Config Files** | `agent-config.docker-testnet.json`, `relayer-testnet.json` | `agent-config.docker-mainnet.json`, `relayer-mainnet.json` |
+| **Relayer Port** | `9112:9090` | `9110:9090` |
+| **Validator Port** | `9122:9090` | `9121:9090` |
+| **Relayer Data Volume** | `./relayer-testnet:/etc/data` | `./relayer:/etc/data` |
+| **Validator Data Volume** | `./validator-testnet:/etc/data` | `./validator:/etc/data` |
+| **Purpose** | Testing and validation | Production deployment |
+| **Risk Level** | Low (test tokens) | High (real tokens) |
+| **Can Run Simultaneously** | ✅ Yes (different ports & volumes) | ✅ Yes (different ports & volumes) |
+
+### 🔍 Common Commands for Both Environments
+
+**For Testnet:**
+```bash
+# Start in background
+docker-compose -f docker-compose-testnet.yml up -d
+
+# View logs
+docker-compose -f docker-compose-testnet.yml logs -f
+
+# View logs for specific service
+docker-compose -f docker-compose-testnet.yml logs -f validator-terraclassic
+docker-compose -f docker-compose-testnet.yml logs -f relayer
+
+# Check status
+docker-compose -f docker-compose-testnet.yml ps
+
+# Stop services
+docker-compose -f docker-compose-testnet.yml down
+
+# Restart services
+docker-compose -f docker-compose-testnet.yml restart
+```
+
+**For Production:**
+```bash
+# Start in background
+docker-compose -f docker-compose.yml up -d
+
+# View logs
+docker-compose -f docker-compose.yml logs -f
+
+# View logs for specific service
+docker-compose -f docker-compose.yml logs -f validator-terraclassic
+docker-compose -f docker-compose.yml logs -f relayer
+
+# Check status
+docker-compose -f docker-compose.yml ps
+
+# Stop services
+docker-compose -f docker-compose.yml down
+
+# Restart services
+docker-compose -f docker-compose.yml restart
+```
+
+### 🌐 Accessing Services (Ports)
+
+Since testnet and production use different ports, you can run both environments simultaneously:
+
+**Testnet Services:**
+- Relayer metrics/API: `http://localhost:9112`
+- Validator metrics: `http://localhost:9122`
+
+**Production Services:**
+- Relayer metrics/API: `http://localhost:9110`
+- Validator metrics: `http://localhost:9121`
+
+**Example: Access testnet relayer metrics:**
+```bash
+curl http://localhost:9112/metrics
+```
+
+**Example: Access production validator metrics:**
+```bash
+curl http://localhost:9121/metrics
+```
+
+### ⚠️ Error: "docker-compose-testnet: command not found"
+
+If you see this error, remember that `docker-compose-testnet.yml` is a **configuration file**, not a command. Always use:
+
+```bash
+docker-compose -f docker-compose-testnet.yml <command>
+```
+
+Or with Docker Compose v2:
+```bash
+docker compose -f docker-compose-testnet.yml <command>
+```
+
+The `-f` flag specifies which configuration file to use.
+
+---
+
 **🎉 Docker and Docker Compose are now installed and ready to use!**
 
-You can now proceed with running Hyperlane validator and relayer using Docker Compose.
+You can now proceed with running Hyperlane validator and relayer using Docker Compose. **Remember to test on testnet first!**
+
 
