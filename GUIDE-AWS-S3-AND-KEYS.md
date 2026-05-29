@@ -1859,7 +1859,7 @@ docker-compose -f docker-compose.yml down
 |---------|----------------------------------------|-----------------------------------|
 | **Network** | Testnet | Mainnet |
 | **Container Names** | `hpl-relayer-testnet`, `hpl-validator-terraclassic-testnet` | `hpl-relayer`, `hpl-validator-terraclassic` |
-| **Config Files** | `agent-config.docker-testnet.json`, `relayer-testnet.json` | `agent-config.docker-mainnet.json`, `relayer-mainnet.json` |
+| **Config Files** | `agent-config.docker.testnet.json`, `relayer-testnet.json` | `agent-config.docker.mainnet.json`, `relayer-mainnet.json` |
 | **Relayer Port** | `9112:9090` | `9110:9090` |
 | **Validator Port** | `9122:9090` | `9121:9090` |
 | **Relayer Data Volume** | `./relayer-testnet:/etc/data` | `./relayer:/etc/data` |

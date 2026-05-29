@@ -14,7 +14,7 @@ services:
     command:
       - |
         rm -rf /app/config/* && \
-        cp "/etc/hyperlane/agent-config.docker-testnet.json" "/app/config/agent-config.json" && \
+        cp "/etc/hyperlane/agent-config.docker.testnet.json" "/app/config/agent-config.json" && \
         CONFIG_FILES="/etc/hyperlane/relayer.testnet.json" \
           ./relayer --allowLocalCheckpointSyncers false --metrics 0.0.0.0:9090 --api 0.0.0.0:9090
     ports:
@@ -37,7 +37,7 @@ services:
     command:
       - |
         rm -rf /app/config/* && \
-        cp "/etc/hyperlane/agent-config.docker-testnet.json" "/app/config/agent-config.json" && \
+        cp "/etc/hyperlane/agent-config.docker.testnet.json" "/app/config/agent-config.json" && \
         CONFIG_FILES="/etc/hyperlane/validator.terraclassic-testnet.json" \
           ./validator --metrics 0.0.0.0:9090
     ports:

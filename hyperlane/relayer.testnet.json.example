@@ -1,6 +1,6 @@
 {
   "db": "/etc/data/db",
-  "relayChains": "terraclassictestnet,bsctestnet,solanatestnet",
+  "relayChains": "terraclassictestnet,bsctestnet,solanatestnet,sepolia",
   "allowLocalCheckpointSyncers": "false",
   "gasPaymentEnforcement": [
     {
@@ -39,6 +39,22 @@
       "destinationDomain": [
         1325
       ]
+    },
+     {
+      "originDomain": [
+        1325
+      ],
+      "destinationDomain": [
+        11155111
+      ]
+    },
+    {
+      "originDomain": [
+        11155111
+      ],
+      "destinationDomain": [
+        1325
+      ]
     }
   ],
   "chains": {
@@ -59,6 +75,12 @@
         "type": "cosmosKey",
         "key": "0xYOUR_PRIVATE_KEY_HERE",
         "prefix": "terra"
+      }
+    },
+    "sepolia": {
+      "signer": {
+        "type": "hexKey",
+        "key": "0xYOUR_PRIVATE_KEY_HERE"
       }
     }
   }
