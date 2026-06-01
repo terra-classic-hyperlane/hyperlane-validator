@@ -686,23 +686,93 @@ Example:
 
 This is the starting block or slot for event indexing.
 
-It should usually point to the block where Hyperlane contracts were deployed or shortly before deployment.
+> **IMPORTANT — Always check the current block height before starting the agents.**
+>
+> If `index.from` is set to a very old block, the agent must scan every block since then before becoming operational. On chains like Solana (300M+ slots) or BSC (40M+ blocks), this can take **many hours or even days**.
+>
+> **Always run `check-block-height.sh` before configuring `agent-config.json` for the first time or after a long downtime.**
 
-If `from` is too old:
+### How to get the current block height
 
-- the agent may index too much history
-- sync time increases
+Run the provided script:
+
+```bash
+chmod +x check-block-height.sh
+./check-block-height.sh
+```
+
+Or query each chain manually:
+
+**Terra Classic:**
+```bash
+# Mainnet
+curl -s https://terra-classic-rpc.publicnode.com:443/status | python3 -c \
+  "import sys,json; print(json.load(sys.stdin)['result']['sync_info']['latest_block_height'])"
+
+# Testnet
+curl -s https://rpc.testnet.terraclassic.community/status | python3 -c \
+  "import sys,json; print(json.load(sys.stdin)['result']['sync_info']['latest_block_height'])"
+```
+
+**Ethereum:**
+```bash
+# Mainnet
+curl -s -X POST https://eth.llamarpc.com -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' | \
+  python3 -c "import sys,json; print(int(json.load(sys.stdin)['result'],16))"
+
+# Sepolia testnet
+curl -s -X POST https://1rpc.io/sepolia -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' | \
+  python3 -c "import sys,json; print(int(json.load(sys.stdin)['result'],16))"
+```
+
+**BSC:**
+```bash
+# Mainnet
+curl -s -X POST https://bsc.drpc.org -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' | \
+  python3 -c "import sys,json; print(int(json.load(sys.stdin)['result'],16))"
+
+# Testnet
+curl -s -X POST https://bsc-testnet.drpc.org -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' | \
+  python3 -c "import sys,json; print(int(json.load(sys.stdin)['result'],16))"
+```
+
+**Solana:**
+```bash
+# Mainnet
+curl -s -X POST https://api.mainnet-beta.solana.com -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"getBlockHeight"}' | \
+  python3 -c "import sys,json; print(json.load(sys.stdin)['result'])"
+
+# Testnet
+curl -s -X POST https://api.testnet.solana.com -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"getBlockHeight"}' | \
+  python3 -c "import sys,json; print(json.load(sys.stdin)['result'])"
+```
+
+### Setting `from` correctly
+
+Copy the value returned by the commands above into the `index.from` field of each chain in `agent-config.json`.
+
+If `from` is set too far in the past:
+
+- the agent indexes too much history
+- sync time increases significantly
 - DB/cache grows faster
 
-If `from` is too recent:
+If `from` is set to a block slightly in the future:
 
-- the agent may miss older Hyperlane events
-- the relayer or validator may not detect previous messages/checkpoints
+- the agent may miss recent Hyperlane events
+- use the **current block minus a small buffer** (e.g., current - 100) to be safe
 
 Recommended:
 
 ```text
-Use the deployment block of the Hyperlane contracts or a block slightly before deployment.
+Use the current block height (or current - 100) when starting fresh.
+Use the Hyperlane contract deployment block if you need to index historical messages.
 ```
 
 ## `chunk`
