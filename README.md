@@ -383,16 +383,203 @@ docker logs hpl-relayer --since 5m 2>&1 | grep -i "rate limit" | wc -l
 
 ## Architecture
 
+### System Overview — Component Map
+
 ```
-┌────────────────────────────────────────────────────────┐
-│                   TERRA CLASSIC                        │
-│  Mailbox ──► Validator signs checkpoint ──► AWS S3     │
-└────────────────────────┬───────────────────────────────┘
-                         │ Relayer reads S3 proofs
-          ┌──────────────┼──────────────┐
-          ▼              ▼              ▼
-      Ethereum          BSC          Solana
-    (deliver msg)   (deliver msg)  (deliver msg)
+                        ┌─────────────────────────────────────────────────┐
+                        │              HYPERLANE PROTOCOL                  │
+                        └─────────────────────────────────────────────────┘
+                                              │
+                   ┌──────────────────────────┼──────────────────────────┐
+                   ▼                          ▼                          ▼
+        ┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐
+        │    VALIDATOR      │      │     RELAYER       │      │   AGENT CONFIG   │
+        │  (Terra Classic) │      │  (all chains)     │      │  agent-config    │
+        │                  │      │                   │      │  .json           │
+        │  • Signs msgs    │      │  • Detects msgs   │      │                  │
+        │  • Writes to S3  │      │  • Reads S3       │      │  • Chain RPCs    │
+        │  • Cosmos signer │      │  • Delivers msgs  │      │  • Domain IDs    │
+        └────────┬─────────┘      └────────┬──────────┘      │  • index.from    │
+                 │                         │                  │  • Mailbox addr  │
+                 │ write                   │ read             └──────────────────┘
+                 ▼                         ▼
+        ┌─────────────────────────────────────────┐
+        │              AWS S3 Bucket               │
+        │   hyperlane-validator-signatures-...     │
+        │                                          │
+        │   checkpoint_0x1234.json  (signed proof) │
+        │   checkpoint_0x5678.json  (signed proof) │
+        └─────────────────────────────────────────┘
+                 │
+                 │ private keys
+        ┌────────▼─────────────────────────────────┐
+        │              Signing Keys                 │
+        │   Terra Classic  →  cosmosKey (hex)       │
+        │   Ethereum       →  hexKey               │
+        │   BSC            →  hexKey               │
+        │   Solana         →  hexKey               │
+        └──────────────────────────────────────────┘
+```
+
+---
+
+### Org Chart — Roles and Responsibilities
+
+```
+                    ┌──────────────────────────────────┐
+                    │         HYPERLANE SETUP           │
+                    └──────────────┬───────────────────┘
+                                   │
+               ┌───────────────────┼───────────────────┐
+               │                   │                   │
+               ▼                   ▼                   ▼
+    ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+    │    VALIDATOR      │ │     RELAYER       │ │    AWS S3        │
+    │                  │ │                   │ │                  │
+    │  Chain: Terra    │ │  Chains:          │ │  Stores signed   │
+    │  Classic only    │ │  • Terra Classic  │ │  checkpoints     │
+    │                  │ │  • Ethereum       │ │  (public read)   │
+    │  Purpose:        │ │  • BSC            │ │                  │
+    │  Observe + Sign  │ │  • Solana         │ │  Written by:     │
+    │  checkpoints     │ │                   │ │  Validator       │
+    │                  │ │  Purpose:         │ │                  │
+    │  Key type:       │ │  Deliver messages │ │  Read by:        │
+    │  cosmosKey       │ │  across chains    │ │  Relayer         │
+    │                  │ │                   │ │                  │
+    │  DB: separate    │ │  Key type:        │ │  IAM policy:     │
+    │  volume          │ │  hexKey (EVM/SOL) │ │  Write = IAM     │
+    │                  │ │  cosmosKey (TC)   │ │  Read = public   │
+    └──────────────────┘ └──────────────────┘ └──────────────────┘
+```
+
+---
+
+### Message Flow — Send (Terra Classic → Destination)
+
+```
+  USER / DAPP
+      │
+      │ calls dispatch()
+      ▼
+┌─────────────────────────────┐
+│  Mailbox Contract            │   Terra Classic
+│  (Terra Classic)            │
+│                             │
+│  • Required Hook (Fee)      │
+│  • Default Hook (Merkle+IGP)│
+│  • Emits MessageDispatched  │
+└──────────────┬──────────────┘
+               │ event detected
+               ▼
+┌─────────────────────────────┐
+│  VALIDATOR                  │
+│                             │
+│  1. Reads new message event │
+│  2. Creates checkpoint      │
+│  3. Signs with private key  │
+│  4. Uploads checkpoint      │
+└──────────────┬──────────────┘
+               │ writes signed proof
+               ▼
+┌─────────────────────────────┐
+│  AWS S3 Bucket              │
+│  checkpoint_0x1234.json     │
+└──────────────┬──────────────┘
+               │ reads checkpoint
+               ▼
+┌─────────────────────────────┐
+│  RELAYER                    │
+│                             │
+│  1. Reads checkpoint from S3│
+│  2. Verifies signature      │
+│  3. Builds delivery tx      │
+│  4. Submits to destination  │
+└──────────────┬──────────────┘
+               │
+       ┌───────┼────────┐
+       ▼       ▼        ▼
+   Ethereum   BSC    Solana
+  Mailbox   Mailbox  Mailbox
+  (deliver) (deliver)(deliver)
+```
+
+---
+
+### Message Flow — Receive (External Chain → Terra Classic)
+
+```
+  External Chain (ETH / BSC / Solana)
+      │
+      │ calls dispatch()
+      ▼
+┌─────────────────────────────┐
+│  Mailbox Contract            │   Source Chain
+│  (Ethereum / BSC / Solana)  │
+│  Emits MessageDispatched    │
+└──────────────┬──────────────┘
+               │ detected by relayer
+               ▼
+┌─────────────────────────────┐
+│  RELAYER                    │
+│                             │
+│  1. Detects message on src  │
+│  2. Reads validator proof   │
+│     from S3 (if needed)     │
+│  3. Builds delivery tx      │
+│  4. Signs with hexKey       │
+└──────────────┬──────────────┘
+               │ submits process()
+               ▼
+┌─────────────────────────────┐
+│  Mailbox Contract            │   Terra Classic
+│  (Terra Classic)            │
+│                             │
+│  1. ISM Routing verifies    │
+│     validator signatures    │
+│  2. ISM Multisig checks     │
+│     threshold (e.g. 3/5)   │
+│  3. handle() called on      │
+│     recipient contract      │
+└─────────────────────────────┘
+               │
+               ▼
+     Message delivered ✅
+```
+
+---
+
+### Directory Structure
+
+```
+tc-hyperlane-validator/
+│
+├── README.md                          ← You are here
+├── check-block-height.sh              ← Run before configuring agents
+├── .env                               ← AWS credentials (never commit)
+├── docker-compose.yml                 ← Mainnet services
+├── docker-compose-testnet.yml         ← Testnet services
+│
+├── hyperlane/                         ← Agent config files
+│   ├── agent-config.mainnet.json      ← Chain registry (mainnet)
+│   ├── agent-config.testnet.json      ← Chain registry (testnet)
+│   ├── validator.terraclassic.json    ← Validator config (mainnet)
+│   ├── validator.terraclassic-testnet.json
+│   ├── relayer.mainnet.json           ← Relayer config (mainnet)
+│   └── relayer.testnet.json
+│
+├── validator/                         ← Validator DB (auto-created)
+│   └── db/
+├── validator-testnet/
+│   └── db/
+├── relayer/                           ← Relayer DB (auto-created)
+│   └── db/
+└── relayer-testnet/
+    └── db/
+
+AWS S3 (remote):
+└── hyperlane-validator-signatures-YOUR-NAME/
+    ├── checkpoint_0x1234...json       ← Written by validator
+    └── checkpoint_0x5678...json       ← Read by relayer
 ```
 
 ---
