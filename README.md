@@ -27,82 +27,21 @@ Hyperlane is a permissionless interoperability protocol that enables cross-chain
 ## Overview — Installation Flow
 
 ```
-0. Check current block height on each chain  ← DO THIS FIRST
-        ↓
 1. Generate private keys (one per chain)
         ↓
 2. Configure AWS S3 (validator checkpoint storage)
         ↓
-3. Build or download the agent binaries
+3. Fill .env with all keys, bucket and DB paths
         ↓
-4. Set index.from in agent-config.json with the block heights from step 0
+4. Run setup-config.sh  ← generates JSON configs from .env
         ↓
-5. Upload binaries + config files to the VPS
+5. Run install-vps.sh   ← updates blocks + builds binaries + deploys to VPS
         ↓
-6. Run validator and relayer (Docker or systemd)
-        ↓
-7. Fund wallets and verify operation
+6. Verify operation
 ```
 
----
-
-## Step 0 — Check Current Block Height (Do This First)
-
-> **Why this matters:** The `index.from` field in `agent-config.json` tells the agent where to start scanning each chain. If it points to an old block, the agent will scan millions of blocks before becoming operational — this can take hours or days. Always set `index.from` to the current block height before starting.
-
-Run the provided script to get the current block height for all chains at once:
-
-```bash
-chmod +x check-block-height.sh
-./check-block-height.sh
-```
-
-**Example output:**
-```
-▶ Terra Classic — Mainnet
-  Block height : 25874321
-  Set in config: "from": 25874321
-
-▶ Ethereum — Mainnet
-  Block height : 22398451
-  Set in config: "from": 22398451
-
-▶ BSC — Mainnet
-  Block height : 49821033
-  Set in config: "from": 49821033
-
-▶ Solana — Mainnet
-  Block height : 318274510
-  Set in config: "from": 318274510
-```
-
-Then open `hyperlane/agent-config.mainnet.json` (or `agent-config.testnet.json`) and update each chain's `index.from` with the values above:
-
-```json
-"terraclassic": {
-  ...
-  "index": {
-    "from": 25874321,
-    "chunk": 5
-  }
-},
-"bsc": {
-  ...
-  "index": {
-    "from": 49821033,
-    "chunk": 10
-  }
-},
-"solana": {
-  ...
-  "index": {
-    "from": 318274510,
-    "chunk": 10
-  }
-}
-```
-
-> For a full explanation of the `index` and `blocks` fields, see [hyperlane-configuration-files-guide.md](./hyperlane-configuration-files-guide.md) — sections 8 and 9.
+> The installer (`install-vps.sh`) automatically runs `check-block-height-mainnet.sh`
+> before uploading to ensure `index.from` is always current — no manual block updates needed.
 
 ---
 
@@ -114,269 +53,197 @@ Then open `hyperlane/agent-config.mainnet.json` (or `agent-config.testnet.json`)
 |------|---------|---------|
 | `cast` (Foundry) | Generate ETH/BSC keys | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
 | `solana-keygen` | Generate Solana keys | `sh -c "$(curl -sSfL https://release.solana.com/stable/install)"` |
-| `terrad` | Generate Terra Classic keys | See [detailed guide](#detailed-documentation) |
-| Docker + Compose | Run agents | `sudo apt install docker.io docker-compose` |
+| `terrad` | Generate Terra Classic keys | See [HYPERLANE-PRIVATE-KEYS-HEX.md](./HYPERLANE-PRIVATE-KEYS-HEX.md) |
+| `Rust` + `cargo` | Build agent binaries | `curl https://sh.rustup.rs -sSf \| sh` |
 | AWS CLI | Configure S3 bucket | `sudo apt install awscli` |
 
 ---
 
 ## Step 1 — Generate Private Keys
 
-Each chain requires its own funded wallet. Keys are provided to the agent in **hexadecimal format** (`0x...`).
+Each chain requires its own funded wallet. Keys must be in **hexadecimal format** (`0x` + 64 hex chars).
 
-### Ethereum & BSC (same format)
+### Ethereum & BSC
 
 ```bash
-# Install Foundry
 curl -L https://foundry.paradigm.xyz | bash && foundryup
-
-# Generate a new key — outputs private key + address
 cast wallet new
-```
-
-Output:
-```
-Private Key: 0xabcdef...
-Address:     0x742d35...
+# Output: Private Key: 0xabcdef...  Address: 0x742d35...
 ```
 
 ### Solana
 
 ```bash
-# Generate keypair
 solana-keygen new --outfile ./solana-keypair.json
-
-# Extract private key as hex (first 32 bytes of the 64-byte keypair)
-python3 << 'EOF'
-import json
-with open('./solana-keypair.json') as f:
-    kp = json.load(f)
-print(f"0x{bytes(kp[:32]).hex()}")
-EOF
+python3 -c "import json; kp=json.load(open('./solana-keypair.json')); print('0x'+bytes(kp[:32]).hex())"
 ```
 
 ### Terra Classic
 
 ```bash
-# Generate key
 terrad keys add validator-key --keyring-backend file
-
-# Export as hex
+# Export as hex (add 0x prefix to the output):
 terrad keys export validator-key --keyring-backend file --unarmored-hex --unsafe
-# Prefix the output with 0x before using it in config files
 ```
 
-> For complete instructions including key import, balance checks, and config formats, see [HYPERLANE-PRIVATE-KEYS-HEX.md](./HYPERLANE-PRIVATE-KEYS-HEX.md)
+> Full guide with key import, balance checks and format validation: [HYPERLANE-PRIVATE-KEYS-HEX.md](./HYPERLANE-PRIVATE-KEYS-HEX.md)
 
 ---
 
 ## Step 2 — Configure AWS S3
 
-The validator publishes signed checkpoints to an S3 bucket so relayers can read them.
+The validator publishes signed checkpoints to S3 so relayers can read them.
 
-**Quick setup:**
+1. Create IAM user `hyperlane-validator` in AWS Console
+2. Create S3 bucket: `hyperlane-validator-signatures-YOUR-NAME`
+3. Set bucket policy (public read + IAM write)
 
-1. Create an IAM user `hyperlane-validator` in AWS Console
-2. Create an S3 bucket: `hyperlane-validator-signatures-YOUR-NAME`
-3. Set bucket policy to allow public reads and IAM writes
-4. Save credentials to `.env`:
+> Full IAM policy JSON and bucket policy: [GUIDE-AWS-S3-AND-KEYS.md](./GUIDE-AWS-S3-AND-KEYS.md)
+
+---
+
+## Step 3 — Fill `.env`
+
+All configurable values live in a single `.env` file — no JSON editing required.
 
 ```bash
-cat > .env << EOF
+cp .env.example .env
+chmod 600 .env
+nano .env   # fill in all values
+```
+
+**Variables in `.env`:**
+
+```bash
+# AWS S3
 AWS_ACCESS_KEY_ID=AKIAXXXXXXXXXXXXXXXXXXXX
 AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 AWS_REGION=us-east-1
-EOF
-chmod 600 .env
-```
+S3_BUCKET=hyperlane-validator-signatures-YOUR-NAME-terraclassic
 
-> For the full IAM policy JSON and bucket policy, see [GUIDE-AWS-S3-AND-KEYS.md](./GUIDE-AWS-S3-AND-KEYS.md)
+# Database paths — /tmp avoids filling the physical disk
+VALIDATOR_DB=/tmp/hyp/validator/db
+RELAYER_DB=/tmp/hyp/relayer/db
+
+# Private keys (0x + 64 hex chars)
+TERRA_PRIVATE_KEY=0xYOUR_TERRA_KEY
+BSC_PRIVATE_KEY=0xYOUR_BSC_KEY
+ETH_PRIVATE_KEY=0xYOUR_ETH_KEY
+SOLANA_PRIVATE_KEY=0xYOUR_SOLANA_KEY
+```
 
 ---
 
-## Step 3 — Configure Agent Files
+## Step 4 — Generate Config Files
 
-Copy the example files and fill in your keys and S3 bucket name:
+`setup-config.sh` reads `.env`, validates all variables and key formats, then generates the JSON config files using the templates:
 
 ```bash
-# Testnet
-cp hyperlane/validator.terraclassic-testnet.json.example hyperlane/validator.terraclassic-testnet.json
-cp hyperlane/relayer.testnet.json.example hyperlane/relayer.testnet.json
-
-# Mainnet
-cp hyperlane/validator.terraclassic.json.example hyperlane/validator.terraclassic.json
-cp hyperlane/relayer.mainnet.json.example hyperlane/relayer.mainnet.json
-
-chmod 600 hyperlane/*.json
+chmod +x setup-config.sh
+./setup-config.sh
 ```
 
-**Validator config** (`validator.terraclassic.json`):
+**What it does:**
+- Validates all 10 required variables are set (no placeholders)
+- Validates each private key is `0x` + 64 hex chars
+- Creates `VALIDATOR_DB` and `RELAYER_DB` directories
+- Runs `envsubst` on the templates → generates final JSON files
+- Validates JSON syntax with `python3 -m json.tool`
 
-```json
-{
-  "db": "/etc/data/db",
-  "checkpointSyncer": {
-    "type": "s3",
-    "bucket": "hyperlane-validator-signatures-YOUR-NAME",
-    "region": "us-east-1"
-  },
-  "originChainName": "terraclassic",
-  "validator": {
-    "type": "hexKey",
-    "key": "0xYOUR_TERRA_PRIVATE_KEY"
-  },
-  "chains": {
-    "terraclassic": {
-      "signer": {
-        "type": "cosmosKey",
-        "key": "0xYOUR_TERRA_PRIVATE_KEY",
-        "prefix": "terra"
-      }
-    }
-  }
-}
+**Generated files:**
+```
+hyperlane/validator.terraclassic.json   ← validator config (db, S3, key)
+hyperlane/relayer.mainnet.json          ← relayer config (db, all chain keys)
 ```
 
-**Relayer config** (`relayer.mainnet.json`) — add a `signer` block per chain with each wallet's private key.
-
-> For full config examples and field explanations, see [hyperlane-configuration-files-guide.md](./hyperlane-configuration-files-guide.md)
+> Templates: `hyperlane/validator.terraclassic.json.template` and `hyperlane/relayer.mainnet.json.template`
 
 ---
 
-## Step 4A — Run with Docker (Recommended)
+## Step 5 — Deploy to VPS (Native Binaries + systemd)
+
+The installer automates everything: block height update → binary build → upload → systemd setup.
 
 ```bash
-# Start all services (testnet)
-docker-compose -f docker-compose-testnet.yml up -d
-
-# Start all services (mainnet)
-docker-compose -f docker-compose.yml up -d
-
-# View logs
-docker logs -f hpl-validator-terraclassic
-docker logs -f hpl-relayer
-
-# Check sync status
-docker logs hpl-relayer 2>&1 | grep "estimated_time_to_sync"
+chmod +x install-vps.sh
+./install-vps.sh --vps YOUR_VPS_IP
 ```
 
-> For Docker installation and troubleshooting, see [DOCKER-INSTALLATION-GUIDE.md](./DOCKER-INSTALLATION-GUIDE.md)
+**What `install-vps.sh` does automatically:**
+
+| Step | Action |
+|------|--------|
+| 1 | Runs `setup-config.sh` — validates and generates JSON configs |
+| 2 | Runs `check-block-height-mainnet.sh` — updates `index.from` for all 4 chains |
+| 3 | Tests SSH connection |
+| 4 | Creates remote directories on VPS |
+| 5 | Uploads config files to VPS |
+| 6 | Installs Rust (if missing), clones `hyperlane-monorepo`, builds `validator` + `relayer` |
+| 7 | Uploads binaries + runtime `config/` directory |
+| 8 | Creates `hyperlane-validator` and `hyperlane-relayer` systemd services |
+| 9 | Enables + starts both services and verifies status |
+
+**Options:**
+
+```bash
+./install-vps.sh --vps 1.2.3.4                           # mainnet, native (default)
+./install-vps.sh --vps 1.2.3.4 --user ubuntu             # custom SSH user
+./install-vps.sh --vps 1.2.3.4 --network testnet         # testnet
+./install-vps.sh --vps 1.2.3.4 --mode docker             # Docker instead of native
+./install-vps.sh --vps 1.2.3.4 --ssh-key ~/.ssh/id_rsa   # custom SSH key
+```
 
 ---
 
-## Step 4B — Run on VPS without Docker (Advanced)
+## Step 6 — Fund Wallets
 
-If you prefer running the binaries directly with `systemd`:
+Each wallet needs native tokens to pay for transactions:
 
-### Build from source (local machine)
-
-```bash
-# Install Rust
-curl https://sh.rustup.rs -sSf | sh
-source "$HOME/.cargo/env"
-
-# Clone and build
-git clone https://github.com/hyperlane-xyz/hyperlane-monorepo.git
-cd hyperlane-monorepo/rust/main
-
-cargo build --release --bin validator
-cargo build --release --bin relayer
-```
-
-Binaries will be at:
-```
-hyperlane-monorepo/rust/main/target/release/validator
-hyperlane-monorepo/rust/main/target/release/relayer
-```
-
-### Upload to VPS
-
-```bash
-VPS_IP="your.vps.ip"
-
-# Create directories
-ssh root@$VPS_IP "mkdir -p /root/hyperlane-bin /root/hyperlane-config /root/hyperlane-runtime"
-
-# Upload binaries
-scp target/release/validator root@$VPS_IP:/root/hyperlane-bin/
-scp target/release/relayer root@$VPS_IP:/root/hyperlane-bin/
-
-# Upload config directory (required at runtime)
-scp -r hyperlane-monorepo/rust/main/config root@$VPS_IP:/root/hyperlane-runtime/
-
-# Upload JSON config files
-scp hyperlane/validator.terraclassic.json root@$VPS_IP:/root/hyperlane-config/
-scp hyperlane/relayer.mainnet.json root@$VPS_IP:/root/hyperlane-config/
-scp hyperlane/agent-config.mainnet.json root@$VPS_IP:/root/hyperlane-config/
-```
-
-### Run as systemd services
-
-```bash
-# Validator
-ssh root@$VPS_IP << 'EOF'
-cat > /etc/systemd/system/hyperlane-validator.service << SERVICE
-[Unit]
-Description=Hyperlane Validator
-After=network.target
-
-[Service]
-WorkingDirectory=/root/hyperlane-runtime
-ExecStart=/root/hyperlane-bin/validator \
-  --db /tmp/hyp/validator \
-  --originChainName terraclassic \
-  --checkpointSyncer.type s3 \
-  --checkpointSyncer.bucket hyperlane-validator-signatures-YOUR-NAME \
-  --checkpointSyncer.region us-east-1 \
-  --chains.terraclassic.connection.url https://terra-classic-rpc.publicnode.com:443
-Environment=CONFIG_FILES=/root/hyperlane-config/validator.terraclassic.json
-Environment=HYP_BASE_CHAINS_TERRACLASSIC_SIGNER_KEY=0xYOUR_TERRA_KEY
-Environment=AWS_ACCESS_KEY_ID=YOUR_AWS_KEY
-Environment=AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-SERVICE
-
-systemctl daemon-reload
-systemctl enable hyperlane-validator
-systemctl start hyperlane-validator
-EOF
-
-# Check status
-ssh root@$VPS_IP "journalctl -u hyperlane-validator -f --no-pager"
-```
-
-> For the full no-Docker VPS guide with systemd configs and log management, see [hyperlane-validator-relayer-vps-english.md](./hyperlane-validator-relayer-vps-english.md)
+| Chain | Token | How to get |
+|-------|-------|------------|
+| Terra Classic | LUNC | Purchase on exchange |
+| BSC | BNB | Purchase on exchange |
+| Ethereum | ETH | Purchase on exchange |
+| Solana | SOL | Purchase on exchange |
 
 ---
 
-## Step 5 — Fund Wallets
-
-Each wallet needs gas tokens to sign and relay transactions:
-
-| Chain | Token | Testnet Faucet |
-|-------|-------|----------------|
-| Terra Classic | LUNC | https://faucet.terra.money/ |
-| BSC Testnet | BNB | https://testnet.bnbchain.org/faucet-smart |
-| Sepolia | ETH | https://sepolia-faucet.pk910.de/ |
-| Solana Testnet | SOL | `solana airdrop 2 YOUR_ADDRESS --url testnet` |
-
----
-
-## Step 6 — Verify Operation
+## Step 7 — Verify Operation
 
 ```bash
+# Check services on VPS
+ssh root@VPS_IP "systemctl status hyperlane-validator hyperlane-relayer --no-pager"
+
+# Live logs
+ssh root@VPS_IP "journalctl -u hyperlane-validator -f"
+ssh root@VPS_IP "journalctl -u hyperlane-relayer -f"
+
 # Validator is writing checkpoints to S3
-aws s3 ls s3://hyperlane-validator-signatures-YOUR-NAME/ --recursive | tail -5
+aws s3 ls s3://YOUR-BUCKET-NAME/ --recursive | tail -5
 
-# Relayer is synced on all chains
-docker logs hpl-relayer 2>&1 | grep "synced"
+# Cache disk usage (should stay in /tmp)
+ssh root@VPS_IP "du -sh /tmp/hyp/validator/db /tmp/hyp/relayer/db"
+```
 
-# No rate limit errors (should be 0 or close)
-docker logs hpl-relayer --since 5m 2>&1 | grep -i "rate limit" | wc -l
+---
+
+## Updating Block Heights (After Downtime)
+
+If the relayer was offline for more than a day, update block heights before restarting:
+
+```bash
+# Updates index.from in agent-config.mainnet.json automatically
+./check-block-height-mainnet.sh
+
+# Then re-upload and restart on VPS
+scp hyperlane/agent-config.mainnet.json root@VPS_IP:/root/hyperlane/config/
+ssh root@VPS_IP "systemctl restart hyperlane-validator hyperlane-relayer"
+```
+
+Or just re-run the installer — it does this automatically:
+
+```bash
+./install-vps.sh --vps YOUR_VPS_IP
 ```
 
 ---
@@ -553,33 +420,41 @@ docker logs hpl-relayer --since 5m 2>&1 | grep -i "rate limit" | wc -l
 ```
 tc-hyperlane-validator/
 │
-├── README.md                          ← You are here
-├── check-block-height.sh              ← Run before configuring agents
-├── .env                               ← AWS credentials (never commit)
-├── docker-compose.yml                 ← Mainnet services
-├── docker-compose-testnet.yml         ← Testnet services
+├── README.md                               ← You are here
+├── .env                                    ← All secrets (never commit)
+├── .env.example                            ← Template — copy to .env
 │
-├── hyperlane/                         ← Agent config files
-│   ├── agent-config.mainnet.json      ← Chain registry (mainnet)
-│   ├── agent-config.testnet.json      ← Chain registry (testnet)
-│   ├── validator.terraclassic.json    ← Validator config (mainnet)
-│   ├── validator.terraclassic-testnet.json
-│   ├── relayer.mainnet.json           ← Relayer config (mainnet)
-│   └── relayer.testnet.json
+├── setup-config.sh                         ← Step 4: generates JSON from .env
+├── install-vps.sh                          ← Step 5: full VPS deployment
+├── check-block-height-mainnet.sh           ← Updates index.from (auto in installer)
+├── check-block-height.sh                   ← Mainnet + testnet query (manual)
 │
-├── validator/                         ← Validator DB (auto-created)
-│   └── db/
-├── validator-testnet/
-│   └── db/
-├── relayer/                           ← Relayer DB (auto-created)
-│   └── db/
-└── relayer-testnet/
-    └── db/
+├── docker-compose.yml                      ← Mainnet Docker services (optional)
+├── docker-compose-testnet.yml              ← Testnet Docker services (optional)
+│
+├── hyperlane/                              ← Agent config files
+│   ├── agent-config.mainnet.json           ← Chain registry (mainnet) — auto-updated
+│   ├── agent-config.testnet.json           ← Chain registry (testnet)
+│   │
+│   ├── validator.terraclassic.json.template  ← Template (committed, no real keys)
+│   ├── relayer.mainnet.json.template         ← Template (committed, no real keys)
+│   │
+│   ├── validator.terraclassic.json         ← Generated by setup-config.sh (gitignored)
+│   └── relayer.mainnet.json                ← Generated by setup-config.sh (gitignored)
+│
+└── doc/
+    └── INSTALL-VPS-PROMPT.md               ← Ready-to-use Claude prompts
+
+VPS structure (/root/hyperlane/):
+├── bin/validator                           ← Compiled binary
+├── bin/relayer                             ← Compiled binary
+├── config/                                 ← JSON configs uploaded by installer
+└── runtime/config/                         ← hyperlane-monorepo config/ (required)
 
 AWS S3 (remote):
 └── hyperlane-validator-signatures-YOUR-NAME/
-    ├── checkpoint_0x1234...json       ← Written by validator
-    └── checkpoint_0x5678...json       ← Read by relayer
+    ├── checkpoint_0x1234...json            ← Written by validator
+    └── checkpoint_0x5678...json            ← Read by relayer
 ```
 
 ---
@@ -588,14 +463,17 @@ AWS S3 (remote):
 
 | Document | Description |
 |----------|-------------|
-| [check-block-height.sh](./check-block-height.sh) | Script to query current block height on all chains (run before configuring agents) |
+| [.env.example](./.env.example) | Template with all required environment variables |
+| [setup-config.sh](./setup-config.sh) | Generates JSON config files from `.env` using templates |
+| [install-vps.sh](./install-vps.sh) | Automated VPS installer (native binaries + systemd) |
+| [check-block-height-mainnet.sh](./check-block-height-mainnet.sh) | Queries & auto-updates `index.from` for all 4 mainnet chains |
+| [check-block-height.sh](./check-block-height.sh) | Manual block height query (mainnet + testnet) |
+| [doc/INSTALL-VPS-PROMPT.md](./doc/INSTALL-VPS-PROMPT.md) | Ready-to-use Claude prompts for automated installation |
 | [HYPERLANE-PRIVATE-KEYS-HEX.md](./HYPERLANE-PRIVATE-KEYS-HEX.md) | Full guide: generating hex private keys for ETH, BSC, Solana, Terra Classic |
 | [GUIDE-AWS-S3-AND-KEYS.md](./GUIDE-AWS-S3-AND-KEYS.md) | AWS S3 setup with IAM policy, bucket policy, and cost estimation |
-| [DOCKER-INSTALLATION-GUIDE.md](./DOCKER-INSTALLATION-GUIDE.md) | Docker installation and container management |
-| [hyperlane-validator-relayer-vps-english.md](./hyperlane-validator-relayer-vps-english.md) | Full VPS setup without Docker (build, upload, systemd) |
-| [hyperlane-configuration-files-guide.md](./hyperlane-configuration-files-guide.md) | Detailed explanation of all JSON config fields — including `index.from` and `blocks` (sections 8 & 9) |
+| [hyperlane-validator-relayer-vps-english.md](./hyperlane-validator-relayer-vps-english.md) | Full manual VPS guide (build, upload, systemd) |
+| [hyperlane-configuration-files-guide.md](./hyperlane-configuration-files-guide.md) | Detailed explanation of all JSON config fields — `index.from` and `blocks` |
 | [ARCHITECTURE-S3.md](./ARCHITECTURE-S3.md) | System architecture and S3 checkpoint flow |
-| [hyperlane-relayer-api-guide.md](./hyperlane-relayer-api-guide.md) | Relayer API and metrics endpoints |
 
 ---
 
@@ -603,11 +481,14 @@ AWS S3 (remote):
 
 | Problem | Likely Cause | Fix |
 |---------|-------------|-----|
-| `rate limit exceeded` | Indexing from genesis block | Run block update script: `./atualizar-blocos-chains.sh` |
-| `unable to reach quorum` | Validator not running or not writing to S3 | Check validator logs and S3 bucket |
-| `container exit 137` | Out of memory | Free RAM or increase VPS memory |
-| `invalid key format` | Key not 64 hex chars | Verify with `echo "0xKEY" \| wc -c` (expect 67) |
-| `AccessDenied` on S3 | Wrong IAM credentials or bucket policy | Check `.env` and bucket policy in AWS Console |
+| `rate limit exceeded` | `index.from` too old | Run `./check-block-height-mainnet.sh` then restart agents |
+| `unable to reach quorum` | Validator not running or S3 not reachable | Check `journalctl -u hyperlane-validator` and S3 bucket |
+| `LOCK: Resource temporarily unavailable` | Two agents sharing same DB | Check `VALIDATOR_DB` ≠ `RELAYER_DB` in `.env` |
+| `invalid key format` | Key not 64 hex chars | Run `./setup-config.sh` — it validates format |
+| `Missing: S3_BUCKET` | Variable not set in `.env` | Run `cp .env.example .env` and fill all values |
+| `AccessDenied` on S3 | Wrong IAM credentials | Check `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` in `.env` |
+| `no providers in chain` | AWS credentials missing in systemd | Check service file has `Environment=AWS_ACCESS_KEY_ID=...` |
+| Disk full on VPS | DB stored in `/etc/data/` not `/tmp/` | Set `VALIDATOR_DB=/tmp/hyp/validator/db` in `.env` and re-run `setup-config.sh` |
 
 ---
 
@@ -621,5 +502,5 @@ AWS S3 (remote):
 ---
 
 **Repository**: `tc-hyperlane-validator`  
-**Last updated**: 2026-06-01  
+**Last updated**: 2026-06-03  
 **Hyperlane Docs**: https://docs.hyperlane.xyz
