@@ -1,37 +1,60 @@
 {
   "db": "/etc/data/db",
-  "relayChains": "terraclassic,bsc,solana",
+  "relayChains": "terraclassic,bsc,ethereum,solanamainnet",
   "allowLocalCheckpointSyncers": "false",
   "gasPaymentEnforcement": [{ "type": "none" }],
-  
+
   "whitelist": [
     {
-      "originDomain": [13251],
+      "originDomain": [1325],
       "destinationDomain": [56]
     },
     {
       "originDomain": [56],
-      "destinationDomain": [13251]
+      "destinationDomain": [1325]
+    },
+    {
+      "originDomain": [1325],
+      "destinationDomain": [1]
+    },
+    {
+      "originDomain": [1],
+      "destinationDomain": [1325]
+    },
+    {
+      "originDomain": [1325],
+      "destinationDomain": [1399811149]
+    },
+    {
+      "originDomain": [1399811149],
+      "destinationDomain": [1325]
     }
   ],
+
   "chains": {
-    "bsc": {
-      "signer": {
-        "type": "hexKey",
-        "key": "0xYOUR_PRIVATE_KEY_HERE"
-      }
-    },
-    "solana": {
-      "signer": {
-        "type": "hexKey",
-        "key": "0xYOUR_PRIVATE_KEY_HERE"
-      }
-    },
     "terraclassic": {
       "signer": {
         "type": "cosmosKey",
-        "key": "0xYOUR_PRIVATE_KEY_HERE",
+        "key": "0xYOUR_TERRA_PRIVATE_KEY",
         "prefix": "terra"
+      }
+    },
+    "bsc": {
+      "signer": {
+        "type": "hexKey",
+        "key": "0xYOUR_BSC_PRIVATE_KEY"
+      }
+    },
+    "ethereum": {
+      "signer": {
+        "type": "hexKey",
+        "key": "0xYOUR_ETH_PRIVATE_KEY"
+      }
+    },
+    "solanamainnet": {
+      "signer": {
+        "type": "hexKey",
+        "key": "0xYOUR_SOLANA_PRIVATE_KEY"
       }
     }
   }
