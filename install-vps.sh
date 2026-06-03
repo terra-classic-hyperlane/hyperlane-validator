@@ -73,59 +73,32 @@ echo "  Network : ${NETWORK}"
 echo "============================================================"
 
 # ── Step 1: Validate local config files ──────────────────────────────────────
-log "Step 1 — Validating local configuration files"
+log "Step 1 — Generating config files from .env via setup-config.sh"
 
-VALIDATOR_JSON="${CONFIG_PREFIX}/validator.terraclassic.json"
-RELAYER_JSON="${CONFIG_PREFIX}/relayer.${NETWORK}.json"
-AGENT_JSON="${CONFIG_PREFIX}/agent-config.${NETWORK}.json"
+SETUP_SCRIPT="${LOCAL_DIR}/setup-config.sh"
 ENV_FILE="${LOCAL_DIR}/.env"
+AGENT_JSON="${CONFIG_PREFIX}/agent-config.${NETWORK}.json"
 
-for f in "$VALIDATOR_JSON" "$RELAYER_JSON" "$AGENT_JSON"; do
-  if [ ! -f "$f" ]; then
-    # Try to copy from .example
-    if [ -f "${f}.example" ]; then
-      warn "$(basename $f) not found — copying from .example"
-      cp "${f}.example" "$f"
-      echo "  ⚠️  Fill private keys in: $f"
-      echo "  Then re-run this script."
-      exit 1
-    else
-      die "Missing: $f"
-    fi
-  fi
-done
+# Check .env exists
+if [ ! -f "$ENV_FILE" ]; then
+  warn ".env not found — creating from .env.example"
+  cp "${LOCAL_DIR}/.env.example" "$ENV_FILE"
+  chmod 600 "$ENV_FILE"
+  die ".env created. Fill all values in .env then re-run."
+fi
 
-# Check for placeholder keys
-for f in "$VALIDATOR_JSON" "$RELAYER_JSON"; do
-  if grep -q "YOUR_.*PRIVATE_KEY\|YOUR_HEX_KEY\|0xYOUR_" "$f" 2>/dev/null; then
-    die "Private keys not set in: $(basename $f). Replace all YOUR_*_PRIVATE_KEY placeholders."
-  fi
-done
+# Run setup-config.sh to generate JSON configs from .env + templates
+if [ -f "$SETUP_SCRIPT" ]; then
+  bash "$SETUP_SCRIPT" || die "setup-config.sh failed — fix .env and re-run."
+else
+  die "setup-config.sh not found. Run manually."
+fi
 
-# Validate JSON syntax
-for f in "$VALIDATOR_JSON" "$RELAYER_JSON" "$AGENT_JSON"; do
-  python3 -m json.tool "$f" > /dev/null 2>&1 || die "Invalid JSON: $(basename $f)"
-done
+# Validate agent-config
+[ -f "$AGENT_JSON" ] || die "Missing: agent-config.${NETWORK}.json"
+python3 -m json.tool "$AGENT_JSON" > /dev/null 2>&1 || die "Invalid JSON: agent-config.${NETWORK}.json"
 
 ok "All config files valid"
-
-# Check .env
-if [ ! -f "$ENV_FILE" ]; then
-  warn ".env not found — creating template"
-  cat > "$ENV_FILE" << 'EOF'
-AWS_ACCESS_KEY_ID=AKIAXXXXXXXXXXXXXXXXXXXX
-AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-AWS_REGION=us-east-1
-EOF
-  echo "  Fill AWS credentials in .env then re-run."
-  exit 1
-fi
-
-if grep -q "AKIAXXXXXXXXXXXX\|xxxxxxxxxxxxxxxx" "$ENV_FILE" 2>/dev/null; then
-  die "AWS credentials not set in .env"
-fi
-
-ok ".env credentials present"
 
 # ── Step 2: Update block heights ──────────────────────────────────────────────
 log "Step 2 — Updating block heights in agent-config.mainnet.json"

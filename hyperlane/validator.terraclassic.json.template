@@ -1,0 +1,22 @@
+{
+  "db": "${VALIDATOR_DB}",
+  "checkpointSyncer": {
+    "type": "s3",
+    "bucket": "${S3_BUCKET}",
+    "region": "${AWS_REGION}"
+  },
+  "originChainName": "terraclassic",
+  "validator": {
+    "type": "hexKey",
+    "key": "${TERRA_PRIVATE_KEY}"
+  },
+  "chains": {
+    "terraclassic": {
+      "signer": {
+        "type": "cosmosKey",
+        "key": "${TERRA_PRIVATE_KEY}",
+        "prefix": "terra"
+      }
+    }
+  }
+}

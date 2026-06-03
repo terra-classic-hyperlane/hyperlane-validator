@@ -1,0 +1,43 @@
+{
+  "db": "${RELAYER_DB}",
+  "relayChains": "terraclassic,bsc,ethereum,solanamainnet",
+  "allowLocalCheckpointSyncers": "false",
+  "gasPaymentEnforcement": [{ "type": "none" }],
+
+  "whitelist": [
+    { "originDomain": [1325], "destinationDomain": [56] },
+    { "originDomain": [56],   "destinationDomain": [1325] },
+    { "originDomain": [1325], "destinationDomain": [1] },
+    { "originDomain": [1],    "destinationDomain": [1325] },
+    { "originDomain": [1325], "destinationDomain": [1399811149] },
+    { "originDomain": [1399811149], "destinationDomain": [1325] }
+  ],
+
+  "chains": {
+    "terraclassic": {
+      "signer": {
+        "type": "cosmosKey",
+        "key": "${TERRA_PRIVATE_KEY}",
+        "prefix": "terra"
+      }
+    },
+    "bsc": {
+      "signer": {
+        "type": "hexKey",
+        "key": "${BSC_PRIVATE_KEY}"
+      }
+    },
+    "ethereum": {
+      "signer": {
+        "type": "hexKey",
+        "key": "${ETH_PRIVATE_KEY}"
+      }
+    },
+    "solanamainnet": {
+      "signer": {
+        "type": "hexKey",
+        "key": "${SOLANA_PRIVATE_KEY}"
+      }
+    }
+  }
+}
