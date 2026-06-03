@@ -1,78 +1,6 @@
 {
   "chains": {
-    "bsc": {
-      "blockExplorers": [
-        {
-          "apiKey": "GP69JEAP2W7YFJT9ZJTEPGQT6Y6KMW44ZN",
-          "apiUrl": "https://api.etherscan.io/v2/api?chainid=56",
-          "family": "etherscan",
-          "name": "BscScan",
-          "url": "https://bscscan.com"
-        }
-      ],
-      "blocks": {
-        "confirmations": 1,
-        "estimateBlockTime": 3,
-        "reorgPeriod": 12
-      },
-      "chainId": 56,
-      "displayName": "Binance Smart Chain",
-      "displayNameShort": "Binance",
-      "domainId": 56,
-      "gasCurrencyCoinGeckoId": "binancecoin",
-      "gnosisSafeTransactionServiceUrl": "https://safe-transaction-bsc.safe.global/",
-      "name": "bsc",
-      "nativeToken": {
-        "decimals": 18,
-        "name": "BNB",
-        "symbol": "BNB"
-      },
-      "protocol": "ethereum",
-     "rpcUrls": [
-        {
-          "http": "https://bsc.drpc.org"
-        },
-        {
-          "http": "https://bsc.publicnode.com"
-        },
-        {
-          "http": "https://bsc-rpc.publicnode.com"
-        },
-        {
-          "http": "https://1rpc.io/bnb"
-        },
-        {
-          "http": "https://rpc.ankr.com/bsc"
-        }
-      ],
-      "merkleRootMultisigIsmFactory": "0xfADBc81Ca8A957F1Bf7c78bCc575b28DBDE042b6",
-      "messageIdMultisigIsmFactory": "0x4B1d8352E35e3BDE36dF5ED2e73C24E35c4a96b7",
-      "aggregationIsmFactory": "0x38B3878c4fb44d201DA924c4a04bae3EE728c065",
-      "aggregationHookFactory": "0xe70E86a7D1e001D419D71F960Cb6CaD59b6A3dB6",
-      "proxyAdmin": "0x65993Af9D0D3a64ec77590db7ba362D6eB78eF70",
-      "storageGasOracle": "0x91d23D603d60445411C06e6443d81395593B7940",
-      "interchainGasPaymaster": "0x78E25e7f84416e69b9339B0A6336EB6EFfF6b451",
-      "aggregationHook": "0x402Fc106576462a892355d69ACF03D46A888ae88",
-      "protocolFee": "0xA8Aa5f14a5463a78E45CC068F11c867949F3E367",
-      "mailbox": "0x2971b9Aec44bE4eb673DF1B88cDB57b96eefe8a4",
-      "merkleTreeHook": "0xFDb9Cd5f9daAA2E4474019405A328a88E7484f26",
-      "validatorAnnounce": "0x7024078130D9c2100fEA474DAD009C2d1703aCcd",
-      "fallbackRoutingHook": "0x237E81f87F57Badad9e09f13CC676D986cA852e7",
-      "pausableHook": "0x7DBdAd1b4A922B65d37d7258a4227b6658344b7f",
-      "pausableIsm": "0x25dB01caDf91CfD2f7e6dD829Ce81698217F9151",
-      "staticAggregationHookFactory": "0xe70E86a7D1e001D419D71F960Cb6CaD59b6A3dB6",
-      "staticAggregationIsm": "0xfA360ff588623A026BF19A1801F2A8F1f045fa33",
-      "staticAggregationIsmFactory": "0x38B3878c4fb44d201DA924c4a04bae3EE728c065",
-      "staticMerkleRootWeightedMultisigIsmFactory": "0x6f72BF0018a93689D9CD6BF59C7AAeA66F578Fc1",
-      "staticMessageIdWeightedMultisigIsmFactory": "0x058C7458193f1b28e2bF7547E3f7a6A719Fc0f59",
-      "testRecipient": "0x36FdA966CfffF8a9Cdc814f546db0e6378bFef35",
-      "testTokenRecipient": "0x85ac1164878e017b67660a74ff1f41f3D05C02Bb",
-      "timelockController": "0x0000000000000000000000000000000000000000",
-      "index": {
-        "from": 64000000,
-        "chunk": 10
-      }
-    },
+
     "terraclassic": {
       "blockExplorers": [
         {
@@ -88,26 +16,17 @@
       "chainId": "columbus-5",
       "protocol": "cosmos",
       "rpcUrls": [
-         {"http": "https://api-lunc-rpc.binodes.com"},
-        {"http": "https://rpc.terra-classic.hexxagon.io"},
-       
-      
-        {"http": "https://terra-classic-rpc.publicnode.com"}
+        { "http": "https://rpc.terra-classic.hexxagon.io" },
+        { "http": "https://terra-classic-rpc.publicnode.com" },
+        { "http": "https://api-lunc-rpc.binodes.com" }
       ],
       "grpcUrls": [
-        {"http": "https://terra-classic-grpc.publicnode.com:443"}
+        { "http": "https://terra-classic-grpc.publicnode.com:443" }
       ],
-
-    "restUrls": [
-        {
-          "http": "https://terra-classic-lcd.publicnode.com"
-        },
-        {
-          "http": "https://lcd.terraclassic.community"
-        },
-        {
-          "http": "https://terra-classic-lcd.polkachu.com"
-        }
+      "restUrls": [
+        { "http": "https://terra-classic-lcd.publicnode.com" },
+        { "http": "https://lcd.terraclassic.community" },
+        { "http": "https://terra-classic-lcd.polkachu.com" }
       ],
       "canonicalAsset": "uluna",
       "bech32Prefix": "terra",
@@ -115,32 +34,144 @@
         "amount": "28325",
         "denom": "uluna"
       },
-      "index": {
-        "from": 25497000,
-        "chunk": 5
-      },
       "blocks": {
         "confirmations": 1,
         "estimateBlockTime": 3,
         "reorgPeriod": 1
-       
+      },
+      "index": {
+        "from": 28900049,
+        "chunk": 5
       },
       "contractAddressBytes": 32,
-     
-    
-     
-      "mailbox": "0x6d5e7cec674a0b5a2d5cca0e50959e271fb0e00104823945675cb5bb681e5733",
-      "validatorAnnounce": "0xce977f68d8ffa86c6dbd96034e70e115e7dd0500069fd788a8e50c9e05f079b6",
-      "interchainGasPaymaster": "0x31f2006370244839909e115991ad18bfed7d64f9caf0de106b5907f2c9ef4722",
-      "merkleTreeHook": "0xc2946d710de2d01d2eff931113dafa7083a252aeaa90004307262ea4693fe23e",
-      "interchainSecurityModule": "0x1961966591bb37e7638812c2dc7d546cbb032e816bfa1d685041492f2d003dbc",
-      "messageIdMultisigIsm": "0x4698f572762d605d83d6f533905b4e8d96459cee1437dcb5aeb062b71616494c",
+      "mailbox": "0x0678bdcb1376efbe6d9537c4306d9d7eebc835dafafdbe92de725de42570669c",
+      "validatorAnnounce": "0x923c57d40a8be893837a0dcf21169cc8bdc9b714f39b56a3a92ed89361d4915c",
+      "interchainGasPaymaster": "0x4ea67ec195ce01295d89a7b011a312709b522b73c043a46305a21aa56ff298f1",
+      "merkleTreeHook": "0xcb5cd50ee115ffe8f0804aab8c1c417ca9fcf31e56fcd32f684e10c09032d753",
+      "interchainSecurityModule": "0x43623ca83b646a3e3bfbddc0778161d180b3dd68901ac84b58f8aef7653a87b6",
       "gas": {
-      "adjustment": 1.5,
-      "min_gas_amount": 2000000 
+        "adjustment": 1.5,
+        "min_gas_amount": 2000000
       }
-    
+    },
+
+    "bsc": {
+      "blockExplorers": [
+        {
+          "apiKey": "GP69JEAP2W7YFJT9ZJTEPGQT6Y6KMW44ZN",
+          "apiUrl": "https://api.etherscan.io/v2/api?chainid=56",
+          "family": "etherscan",
+          "name": "BscScan",
+          "url": "https://bscscan.com"
+        }
+      ],
+      "name": "bsc",
+      "domainId": 56,
+      "chainId": 56,
+      "protocol": "ethereum",
+      "nativeToken": {
+        "decimals": 18,
+        "name": "BNB",
+        "symbol": "BNB"
+      },
+      "rpcUrls": [
+        { "http": "https://bsc.drpc.org" },
+        { "http": "https://bsc.publicnode.com" },
+        { "http": "https://bsc-rpc.publicnode.com" },
+        { "http": "https://1rpc.io/bnb" },
+        { "http": "https://rpc.ankr.com/bsc" }
+      ],
+      "blocks": {
+        "confirmations": 1,
+        "estimateBlockTime": 3,
+        "reorgPeriod": 15
+      },
+      "index": {
+        "from": 102106289,
+        "chunk": 10
+      },
+      "mailbox": "0x2971b9Aec44bE4eb673DF1B88cDB57b96eefe8a4",
+      "validatorAnnounce": "0x7024078130D9c2100fEA474DAD009C2d1703aCcd",
+      "interchainGasPaymaster": "0x78E25e7f84416e69b9339B0A6336EB6EFfF6b451",
+      "merkleTreeHook": "0xFDb9Cd5f9daAA2E4474019405A328a88E7484f26",
+      "interchainSecurityModule": "0x985cfA4Bf29875b3d243E9f059AB0Fc68171942d"
+    },
+
+    "ethereum": {
+      "blockExplorers": [
+        {
+          "apiUrl": "https://api.etherscan.io/api",
+          "family": "etherscan",
+          "name": "Etherscan",
+          "url": "https://etherscan.io"
+        }
+      ],
+      "name": "ethereum",
+      "domainId": 1,
+      "chainId": 1,
+      "protocol": "ethereum",
+      "nativeToken": {
+        "decimals": 18,
+        "name": "Ether",
+        "symbol": "ETH"
+      },
+      "rpcUrls": [
+        { "http": "https://ethereum.publicnode.com" },
+        { "http": "https://eth.drpc.org" },
+        { "http": "https://rpc.flashbots.net" },
+        { "http": "https://eth-pokt.nodies.app" }
+      ],
+      "blocks": {
+        "confirmations": 2,
+        "estimateBlockTime": 13,
+        "reorgPeriod": 15
+      },
+      "index": {
+        "from": 25238116,
+        "chunk": 10
+      },
+      "mailbox": "0xc005dc82818d67AF737725bD4bf75435d065D239",
+      "validatorAnnounce": "0xCe74905e51497b4adD3639366708b821dcBcff96",
+      "interchainGasPaymaster": "0x9e6B1022bE9BBF5aFd152483DAD9b88911bC8611",
+      "merkleTreeHook": "0x48e6c30B97748d1e2e03bf3e9FbE3890ca5f8CCA",
+      "interchainSecurityModule": "0x255e1B6Eca490812331c1D836F37F21Aa7be88c9"
+    },
+
+    "solanamainnet": {
+      "blockExplorers": [
+        {
+          "family": "other",
+          "name": "Solana Explorer",
+          "url": "https://explorer.solana.com"
+        }
+      ],
+      "name": "solanamainnet",
+      "domainId": 1399811149,
+      "chainId": 1399811149,
+      "protocol": "sealevel",
+      "nativeToken": {
+        "decimals": 9,
+        "name": "SOL",
+        "symbol": "SOL"
+      },
+      "rpcUrls": [
+        { "http": "https://api.mainnet-beta.solana.com" }
+      ],
+      "blocks": {
+        "confirmations": 1,
+        "estimateBlockTime": 0.4,
+        "reorgPeriod": 0
+      },
+      "index": {
+        "from": 402147821,
+        "chunk": 10
+      },
+      "mailbox": "E588QtVUvresuXq2KoNEwAmoifCzYGpRBdHByN9KQMbi",
+      "validatorAnnounce": "pRgs5vN4Pj7WvFbxf6QDHizo2njq2uksqEUbaSghVA8",
+      "interchainGasPaymaster": "JAvHW21tYXE9dtdG83DReqU2b4LUexFuCbtJT5tF8X6M",
+      "merkleTreeHook": "E588QtVUvresuXq2KoNEwAmoifCzYGpRBdHByN9KQMbi",
+      "interchainSecurityModule": "LwNfVYMDzAe5dCJgA5CipTZcT34Eyf74zLr81K91jxk"
     }
+
   }
- 
 }
