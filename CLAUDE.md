@@ -8,7 +8,7 @@ This file defines skills for Claude Code to perform automated installation and m
 
 - **Network:** Terra Classic Mainnet (columbus-5) + BSC + Ethereum + Solana
 - **Agents:** Validator (Terra Classic) + Relayer (all chains)
-- **Deployment modes:** Docker (recommended) or native binaries with systemd
+- **Deployment modes:** Native binaries with systemd (**recommended**) or Docker
 - **Key files:**
   - `hyperlane/agent-config.mainnet.json` — chain registry
   - `hyperlane/validator.terraclassic.json` — validator config
@@ -31,7 +31,7 @@ Ask the user for:
 - `VPS_IP` — VPS IP address or hostname
 - `VPS_USER` — SSH user (default: `root`)
 - `VPS_DIR` — Remote base directory (default: `/root/hyperlane`)
-- `MODE` — `docker` (default) or `native` (compile binaries)
+- `MODE` — `native` (**default — compile and install binaries with systemd**) or `docker`
 - `NETWORK` — `mainnet` or `testnet` (default: `mainnet`)
 
 Check if the `.env` file exists locally and has `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
@@ -48,37 +48,36 @@ hyperlane/agent-config.mainnet.json
 
 For each `.json.example` file without a corresponding `.json`, copy and prompt user to fill keys.
 
-### Step 3 — Docker installation (default)
+### Step 3 — Native installation (systemd) — DEFAULT
 
 ```bash
-# 1. Upload project files to VPS
-rsync -avz --exclude='.git' --exclude='node_modules' \
-  ./ ${VPS_USER}@${VPS_IP}:${VPS_DIR}/
+# 1. Install Rust locally if not present
+curl https://sh.rustup.rs -sSf | sh -s -- -y
+source "$HOME/.cargo/env"
 
-# 2. SSH into VPS and install Docker if missing
-ssh ${VPS_USER}@${VPS_IP} "
-  command -v docker || (apt-get update && apt-get install -y docker.io docker-compose) &&
-  systemctl enable docker && systemctl start docker
-"
+# 2. Clone or update hyperlane-monorepo
+git clone https://github.com/hyperlane-xyz/hyperlane-monorepo.git ~/hyperlane-monorepo
+# or: cd ~/hyperlane-monorepo && git pull
 
-# 3. Start services
-ssh ${VPS_USER}@${VPS_IP} "
-  cd ${VPS_DIR} &&
-  docker-compose pull &&
-  docker-compose up -d
-"
+# 3. Build binaries
+cd ~/hyperlane-monorepo/rust/main
+cargo build --release --bin validator
+cargo build --release --bin relayer
 
-# 4. Verify
-ssh ${VPS_USER}@${VPS_IP} "
-  docker ps | grep hpl &&
-  sleep 10 &&
-  docker logs hpl-relayer --tail 20
-"
+# 4. Upload binaries + config + runtime to VPS
+scp target/release/validator root@VPS:/root/hyperlane/bin/
+scp target/release/relayer   root@VPS:/root/hyperlane/bin/
+scp -r config                root@VPS:/root/hyperlane/runtime/   # required at runtime
+scp hyperlane/agent-config.mainnet.json  root@VPS:/root/hyperlane/config/
+scp hyperlane/validator.terraclassic.json root@VPS:/root/hyperlane/config/
+scp hyperlane/relayer.mainnet.json       root@VPS:/root/hyperlane/config/
+
+# 5. Create systemd services, enable and start (see install-vps.sh)
 ```
 
-### Step 4 — Native installation (systemd)
+### Step 4 — Docker installation (optional)
 
-Only use this mode when user explicitly requests `MODE=native`.
+Only use this mode when user explicitly requests `MODE=docker`.
 
 ```bash
 # 1. Install Rust locally
@@ -107,13 +106,15 @@ scp hyperlane/relayer.mainnet.json                          ${VPS_USER}@${VPS_IP
 ### Step 5 — Verify installation
 
 ```bash
+# Native mode (default)
+systemctl status hyperlane-validator --no-pager
+systemctl status hyperlane-relayer --no-pager
+journalctl -u hyperlane-validator -n 30 --no-pager
+journalctl -u hyperlane-relayer -n 30 --no-pager
+
 # Docker mode
 docker logs hpl-relayer 2>&1 | grep -E "(synced|ERROR|started)"
 docker logs hpl-validator-terraclassic 2>&1 | grep -E "(checkpoint|signed|ERROR)"
-
-# Native mode
-journalctl -u hyperlane-relayer -n 50 --no-pager
-journalctl -u hyperlane-validator -n 50 --no-pager
 ```
 
 ### Step 6 — Report to user
@@ -157,14 +158,17 @@ Run `./check-block-height.sh` to get current blocks, then update `agent-config.m
 **Trigger:** User asks to update, upgrade, or redeploy the agents.
 
 ```bash
+# Native (default) — rebuild and redeploy
+cd ~/hyperlane-monorepo && git pull
+cd rust/main
+cargo build --release --bin validator
+cargo build --release --bin relayer
+scp target/release/validator root@VPS_IP:/root/hyperlane/bin/
+scp target/release/relayer   root@VPS_IP:/root/hyperlane/bin/
+ssh root@VPS_IP "systemctl restart hyperlane-validator hyperlane-relayer"
+
 # Docker — pull new image
 docker-compose pull && docker-compose up -d
-
-# Native — rebuild and redeploy
-~/build-validator.sh && ~/build-relayer.sh
-scp ~/hyperlane-bin/validator root@VPS_IP:/root/hyperlane-bin/
-scp ~/hyperlane-bin/relayer   root@VPS_IP:/root/hyperlane-bin/
-ssh root@VPS_IP "systemctl restart hyperlane-validator hyperlane-relayer"
 ```
 
 ---

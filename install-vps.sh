@@ -18,8 +18,8 @@
 #
 # Examples:
 #   ./install-vps.sh --vps 1.2.3.4
-#   ./install-vps.sh --vps 1.2.3.4 --user ubuntu --mode docker --network mainnet
-#   ./install-vps.sh --vps 1.2.3.4 --mode native
+#   ./install-vps.sh --vps 1.2.3.4 --user ubuntu --network mainnet
+#   ./install-vps.sh --vps 1.2.3.4 --mode docker   (use Docker instead)
 # =============================================================================
 
 set -e
@@ -28,7 +28,7 @@ set -e
 VPS_IP=""
 VPS_USER="root"
 VPS_DIR="/root/hyperlane"
-MODE="docker"
+MODE="native"
 NETWORK="mainnet"
 SSH_KEY=""
 LOCAL_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -127,14 +127,24 @@ fi
 
 ok ".env credentials present"
 
-# ── Step 2: Test SSH connection ───────────────────────────────────────────────
-log "Step 2 — Testing SSH connection to ${VPS_IP}"
+# ── Step 2: Update block heights ──────────────────────────────────────────────
+log "Step 2 — Updating block heights in agent-config.mainnet.json"
+BLOCK_SCRIPT="$(dirname "$0")/check-block-height-mainnet.sh"
+if [ -f "$BLOCK_SCRIPT" ]; then
+  bash "$BLOCK_SCRIPT"
+else
+  warn "check-block-height-mainnet.sh not found — skipping block height update"
+  warn "Run manually: ./check-block-height-mainnet.sh"
+fi
+
+# ── Step 3: Test SSH connection ───────────────────────────────────────────────
+log "Step 3 — Testing SSH connection to ${VPS_IP}"
 $SSH "echo 'SSH OK'" || die "Cannot connect via SSH to ${VPS_IP}"
 ok "SSH connection successful"
 
-# ── Step 3: Install Docker on VPS (docker mode) ───────────────────────────────
+# ── Step 3: Install Docker on VPS (docker mode only) ─────────────────────────
 if [ "$MODE" = "docker" ]; then
-  log "Step 3 — Checking Docker on VPS"
+  log "Step 4 — Checking Docker on VPS"
   $SSH "command -v docker > /dev/null 2>&1" && ok "Docker already installed" || {
     warn "Installing Docker..."
     $SSH "
@@ -150,12 +160,12 @@ if [ "$MODE" = "docker" ]; then
 fi
 
 # ── Step 4: Create remote directories ─────────────────────────────────────────
-log "Step 4 — Creating remote directories"
+log "Step 5 — Creating remote directories"
 $SSH "mkdir -p ${VPS_DIR}/hyperlane ${VPS_DIR}/validator ${VPS_DIR}/relayer ${VPS_DIR}/validator-testnet ${VPS_DIR}/relayer-testnet"
 ok "Directories created"
 
 # ── Step 5: Upload files ──────────────────────────────────────────────────────
-log "Step 5 — Uploading configuration files"
+log "Step 6 — Uploading configuration files"
 
 # Upload hyperlane config files
 $SCP "${CONFIG_PREFIX}/agent-config.${NETWORK}.json" \
@@ -174,7 +184,8 @@ $SCP "${LOCAL_DIR}/.env"               "${VPS_USER}@${VPS_IP}:${VPS_DIR}/"
 
 ok "Files uploaded"
 
-# ── Step 6: Docker mode — pull and start ──────────────────────────────────────
+# ── Step 6 (native mode — DEFAULT): Build + upload binaries + systemd ────────
+# ── Step 6: Docker mode ───────────────────────────────────────────────────────
 if [ "$MODE" = "docker" ]; then
   log "Step 6 — Pulling Docker images and starting services"
 
@@ -199,7 +210,6 @@ if [ "$MODE" = "docker" ]; then
   $SSH "docker logs hpl-validator-terraclassic --tail 20 2>&1" || true
 fi
 
-# ── Step 6 (native mode): Build + upload binaries + systemd ──────────────────
 if [ "$MODE" = "native" ]; then
   log "Step 6 — Building binaries locally (this may take 15-30 min)"
 

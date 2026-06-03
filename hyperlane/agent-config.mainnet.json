@@ -1,6 +1,5 @@
 {
   "chains": {
-
     "terraclassic": {
       "blockExplorers": [
         {
@@ -16,17 +15,31 @@
       "chainId": "columbus-5",
       "protocol": "cosmos",
       "rpcUrls": [
-        { "http": "https://rpc.terra-classic.hexxagon.io" },
-        { "http": "https://terra-classic-rpc.publicnode.com" },
-        { "http": "https://api-lunc-rpc.binodes.com" }
+        {
+          "http": "https://rpc.terra-classic.hexxagon.io"
+        },
+        {
+          "http": "https://terra-classic-rpc.publicnode.com"
+        },
+        {
+          "http": "https://api-lunc-rpc.binodes.com"
+        }
       ],
       "grpcUrls": [
-        { "http": "https://terra-classic-grpc.publicnode.com:443" }
+        {
+          "http": "https://terra-classic-grpc.publicnode.com:443"
+        }
       ],
       "restUrls": [
-        { "http": "https://terra-classic-lcd.publicnode.com" },
-        { "http": "https://lcd.terraclassic.community" },
-        { "http": "https://terra-classic-lcd.polkachu.com" }
+        {
+          "http": "https://terra-classic-lcd.publicnode.com"
+        },
+        {
+          "http": "https://lcd.terraclassic.community"
+        },
+        {
+          "http": "https://terra-classic-lcd.polkachu.com"
+        }
       ],
       "canonicalAsset": "uluna",
       "bech32Prefix": "terra",
@@ -40,7 +53,7 @@
         "reorgPeriod": 1
       },
       "index": {
-        "from": 28900049,
+        "from": 28901780,
         "chunk": 5
       },
       "contractAddressBytes": 32,
@@ -54,7 +67,6 @@
         "min_gas_amount": 2000000
       }
     },
-
     "bsc": {
       "blockExplorers": [
         {
@@ -75,11 +87,21 @@
         "symbol": "BNB"
       },
       "rpcUrls": [
-        { "http": "https://bsc.drpc.org" },
-        { "http": "https://bsc.publicnode.com" },
-        { "http": "https://bsc-rpc.publicnode.com" },
-        { "http": "https://1rpc.io/bnb" },
-        { "http": "https://rpc.ankr.com/bsc" }
+        {
+          "http": "https://bsc.drpc.org"
+        },
+        {
+          "http": "https://bsc.publicnode.com"
+        },
+        {
+          "http": "https://bsc-rpc.publicnode.com"
+        },
+        {
+          "http": "https://1rpc.io/bnb"
+        },
+        {
+          "http": "https://rpc.ankr.com/bsc"
+        }
       ],
       "blocks": {
         "confirmations": 1,
@@ -87,7 +109,7 @@
         "reorgPeriod": 15
       },
       "index": {
-        "from": 102106289,
+        "from": 102128991,
         "chunk": 10
       },
       "mailbox": "0x2971b9Aec44bE4eb673DF1B88cDB57b96eefe8a4",
@@ -96,7 +118,6 @@
       "merkleTreeHook": "0xFDb9Cd5f9daAA2E4474019405A328a88E7484f26",
       "interchainSecurityModule": "0x985cfA4Bf29875b3d243E9f059AB0Fc68171942d"
     },
-
     "ethereum": {
       "blockExplorers": [
         {
@@ -116,10 +137,18 @@
         "symbol": "ETH"
       },
       "rpcUrls": [
-        { "http": "https://ethereum.publicnode.com" },
-        { "http": "https://eth.drpc.org" },
-        { "http": "https://rpc.flashbots.net" },
-        { "http": "https://eth-pokt.nodies.app" }
+        {
+          "http": "https://ethereum.publicnode.com"
+        },
+        {
+          "http": "https://eth.drpc.org"
+        },
+        {
+          "http": "https://rpc.flashbots.net"
+        },
+        {
+          "http": "https://eth-pokt.nodies.app"
+        }
       ],
       "blocks": {
         "confirmations": 2,
@@ -127,7 +156,7 @@
         "reorgPeriod": 15
       },
       "index": {
-        "from": 25238116,
+        "from": 25238961,
         "chunk": 10
       },
       "mailbox": "0xc005dc82818d67AF737725bD4bf75435d065D239",
@@ -136,7 +165,6 @@
       "merkleTreeHook": "0x48e6c30B97748d1e2e03bf3e9FbE3890ca5f8CCA",
       "interchainSecurityModule": "0x255e1B6Eca490812331c1D836F37F21Aa7be88c9"
     },
-
     "solanamainnet": {
       "blockExplorers": [
         {
@@ -155,7 +183,9 @@
         "symbol": "SOL"
       },
       "rpcUrls": [
-        { "http": "https://api.mainnet-beta.solana.com" }
+        {
+          "http": "https://api.mainnet-beta.solana.com"
+        }
       ],
       "blocks": {
         "confirmations": 1,
@@ -163,7 +193,7 @@
         "reorgPeriod": 0
       },
       "index": {
-        "from": 402147821,
+        "from": 402173466,
         "chunk": 10
       },
       "mailbox": "E588QtVUvresuXq2KoNEwAmoifCzYGpRBdHByN9KQMbi",
@@ -172,6 +202,5 @@
       "merkleTreeHook": "E588QtVUvresuXq2KoNEwAmoifCzYGpRBdHByN9KQMbi",
       "interchainSecurityModule": "LwNfVYMDzAe5dCJgA5CipTZcT34Eyf74zLr81K91jxk"
     }
-
   }
 }

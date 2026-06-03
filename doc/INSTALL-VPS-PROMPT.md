@@ -2,14 +2,17 @@
 
 This document contains ready-to-use prompts for Claude Code to perform a complete automated installation of the Hyperlane Validator and Relayer on a VPS.
 
+> **Recommended:** Native binary installation with systemd — no Docker required.
+> Docker is available as an alternative option.
+
 ---
 
-## Quick Start Prompt (Docker — Recommended)
+## Quick Start Prompt (Native Binary — Recommended)
 
 Copy and paste this prompt into Claude Code:
 
 ```
-Install the Hyperlane Validator and Relayer on my VPS using Docker.
+Install the Hyperlane Validator and Relayer on my VPS using compiled binaries and systemd.
 
 VPS details:
 - IP: <YOUR_VPS_IP>
@@ -23,27 +26,29 @@ Before installing:
 4. Validate all JSON files with python3 -m json.tool
 
 Then run:
-  ./install-vps.sh --vps <YOUR_VPS_IP> --mode docker --network mainnet
+  chmod +x install-vps.sh
+  ./install-vps.sh --vps <YOUR_VPS_IP> --network mainnet
 
-After installation, check:
-- docker ps shows hpl-relayer and hpl-validator-terraclassic running
-- docker logs hpl-relayer shows chains syncing
-- docker logs hpl-validator-terraclassic shows checkpoints being signed
+After installation check:
+- systemctl status hyperlane-validator on VPS
+- systemctl status hyperlane-relayer on VPS
+- journalctl -u hyperlane-validator -n 30 shows checkpoints being signed
+- journalctl -u hyperlane-relayer -n 30 shows chains syncing
 
-Show me the status of each container and the last 20 lines of logs.
+Show me the status of each service and the last 20 lines of logs.
 ```
 
 ---
 
-## Full Installation Prompt (Step by Step)
+## Full Installation Prompt (Native — Step by Step)
 
 ```
-I need to install the Hyperlane Validator and Relayer on a Linux VPS.
+I need to install the Hyperlane Validator and Relayer on a Linux VPS using compiled binaries.
 
 Project directory: /home/lunc/tc-hyperlane-validator
 VPS IP: <YOUR_VPS_IP>
 VPS user: root
-Mode: docker
+Mode: native (compile from source, run with systemd)
 Network: mainnet
 
 Please do the following in order:
@@ -56,58 +61,54 @@ STEP 1 — Check local config files
 
 STEP 2 — Check current block heights
 Run ./check-block-height.sh and update agent-config.mainnet.json index.from
-for each chain if the values are more than 100,000 blocks behind.
+for each chain if the values are more than 100,000 blocks behind current.
 
 STEP 3 — Test SSH connection
 ssh root@<YOUR_VPS_IP> "echo connected"
 
-STEP 4 — Run the installer
+STEP 4 — Run the installer (native mode)
 chmod +x install-vps.sh
-./install-vps.sh --vps <YOUR_VPS_IP> --mode docker --network mainnet
+./install-vps.sh --vps <YOUR_VPS_IP> --network mainnet
 
-STEP 5 — Verify installation
-Connect to VPS and check:
-- docker ps | grep hpl (both containers running)
-- docker logs hpl-relayer --tail 30 (no fatal errors)
-- docker logs hpl-validator-terraclassic --tail 30 (checkpoints signed)
-- aws s3 ls s3://YOUR-BUCKET-NAME/ to confirm S3 checkpoints appearing
+This will:
+- Install Rust locally if not present
+- Clone hyperlane-monorepo and build validator + relayer from source
+- Upload binaries to VPS at /root/hyperlane/bin/
+- Upload config files to /root/hyperlane/config/
+- Upload the Hyperlane config/ directory to /root/hyperlane/runtime/
+- Create systemd services: hyperlane-validator and hyperlane-relayer
+- Enable and start both services
+
+STEP 5 — Verify on VPS
+ssh root@<VPS_IP> "systemctl status hyperlane-validator hyperlane-relayer --no-pager"
+ssh root@<VPS_IP> "journalctl -u hyperlane-validator -n 30 --no-pager"
+ssh root@<VPS_IP> "journalctl -u hyperlane-relayer -n 30 --no-pager"
+aws s3 ls s3://YOUR-BUCKET-NAME/ to confirm S3 checkpoints appearing
 
 STEP 6 — Report
-Print a summary table with container names, status, and any errors found.
+Print a summary table with service names, status, and any errors found.
 ```
 
 ---
 
-## Native Installation Prompt (systemd — Advanced)
+## Docker Installation Prompt (Alternative)
 
 ```
-Install the Hyperlane Validator and Relayer on my VPS using native binaries and systemd.
+Install the Hyperlane Validator and Relayer on my VPS using Docker.
 
-Project directory: /home/lunc/tc-hyperlane-validator  
+Project directory: /home/lunc/tc-hyperlane-validator
 VPS IP: <YOUR_VPS_IP>
 VPS user: root
-Mode: native (compile from source)
+Mode: docker
 Network: mainnet
 
-Please do the following:
+Run:
+  ./install-vps.sh --vps <YOUR_VPS_IP> --mode docker --network mainnet
 
-STEP 1 — Validate config files (same as Docker prompt above)
-
-STEP 2 — Run native installer
-./install-vps.sh --vps <YOUR_VPS_IP> --mode native --network mainnet
-
-Note: This will:
-- Install Rust locally if not present
-- Clone hyperlane-monorepo and build validator + relayer binaries
-- Upload binaries to VPS at /root/hyperlane/bin/
-- Upload config files to /root/hyperlane/config/
-- Upload the Hyperlane config/ directory to /root/hyperlane/runtime/
-- Create and enable systemd services: hyperlane-validator and hyperlane-relayer
-
-STEP 3 — Verify on VPS
-ssh root@<VPS_IP> "systemctl status hyperlane-validator hyperlane-relayer --no-pager"
-ssh root@<VPS_IP> "journalctl -u hyperlane-relayer -n 30 --no-pager"
-ssh root@<VPS_IP> "journalctl -u hyperlane-validator -n 30 --no-pager"
+After installation check:
+- docker ps | grep hpl (both containers running)
+- docker logs hpl-relayer --tail 30
+- docker logs hpl-validator-terraclassic --tail 30
 ```
 
 ---
