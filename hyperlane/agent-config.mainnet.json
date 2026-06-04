@@ -53,7 +53,7 @@
         "reorgPeriod": 1
       },
       "index": {
-        "from": 28905352,
+        "from": 28905457,
         "chunk": 5
       },
       "contractAddressBytes": 32,
@@ -88,19 +88,25 @@
       },
       "rpcUrls": [
         {
-          "http": "https://bsc.drpc.org"
+          "http": "https://bsc-dataseed1.binance.org"
+        },
+        {
+          "http": "https://bsc-dataseed2.binance.org"
+        },
+        {
+          "http": "https://bsc-dataseed3.binance.org"
+        },
+        {
+          "http": "https://bsc-dataseed4.binance.org"
         },
         {
           "http": "https://bsc.publicnode.com"
         },
         {
-          "http": "https://bsc-rpc.publicnode.com"
+          "http": "https://rpc.ankr.com/bsc"
         },
         {
           "http": "https://1rpc.io/bnb"
-        },
-        {
-          "http": "https://rpc.ankr.com/bsc"
         }
       ],
       "blocks": {
@@ -109,7 +115,7 @@
         "reorgPeriod": 15
       },
       "index": {
-        "from": 102175791,
+        "from": 102177162,
         "chunk": 10
       },
       "mailbox": "0x2971b9Aec44bE4eb673DF1B88cDB57b96eefe8a4",
@@ -156,7 +162,7 @@
         "reorgPeriod": 15
       },
       "index": {
-        "from": 25240710,
+        "from": 25240762,
         "chunk": 10
       },
       "mailbox": "0xc005dc82818d67AF737725bD4bf75435d065D239",
@@ -193,7 +199,7 @@
         "reorgPeriod": 0
       },
       "index": {
-        "from": 402226241,
+        "from": 402227784,
         "chunk": 10
       },
       "mailbox": "E588QtVUvresuXq2KoNEwAmoifCzYGpRBdHByN9KQMbi",
