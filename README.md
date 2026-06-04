@@ -182,7 +182,8 @@ chmod +x install-vps.sh
 | 7 | Installs Rust (if missing), clones `hyperlane-monorepo`, builds `validator` + `relayer` if needed |
 | 8 | Uploads binaries + runtime `config/` directory via rsync |
 | 9 | Installs `hyperlane-validator` and `hyperlane-relayer` systemd services using `EnvironmentFile=` |
-| 10 | Enables + starts both services and verifies status |
+| 10 | Configures systemd journal limit: **500 MB max, 7-day retention** (`/etc/systemd/journald.conf.d/hyperlane.conf`) |
+| 11 | Enables + starts both services and verifies status |
 
 **All options:**
 

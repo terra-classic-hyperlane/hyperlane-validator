@@ -331,8 +331,22 @@ UNIT"
   "
   ok "systemd services installed and started"
 
-  # ── Step 9: Verify ─────────────────────────────────────────────────────────
-  log "Step 9 — Verifying service status"
+  # ── Step 9: Configure journal size limit ───────────────────────────────────
+  log "Step 9 — Configuring systemd journal limits"
+  $SSH "
+    mkdir -p /etc/systemd/journald.conf.d
+    cat > /etc/systemd/journald.conf.d/hyperlane.conf << 'EOF'
+[Journal]
+SystemMaxUse=500M
+SystemKeepFree=500M
+MaxRetentionSec=7day
+EOF
+    systemctl restart systemd-journald
+  "
+  ok "Journal limited to 500 MB / 7 days (config: /etc/systemd/journald.conf.d/hyperlane.conf)"
+
+  # ── Step 10: Verify ────────────────────────────────────────────────────────
+  log "Step 10 — Verifying service status"
   sleep 5
   echo ""
   echo "  === Validator ==="
