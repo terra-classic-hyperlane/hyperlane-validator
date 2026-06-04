@@ -68,9 +68,9 @@ echo ""
 
 # ── 1. Terra Classic Mainnet ──────────────────────────────────────────────────
 echo "▶ Terra Classic Mainnet (columbus-5)"
-TC=$(cosmos_block "https://terra-classic-rpc.publicnode.com:443")
+TC=$(cosmos_block "https://terra-classic-rpc.publicnode.com:443") || true
 if [ -z "$TC" ]; then
-  TC=$(cosmos_block "https://rpc.terra-classic.hexxagon.io")
+  TC=$(cosmos_block "https://rpc.terra-classic.hexxagon.io") || true
 fi
 if [ -n "$TC" ]; then
   ok "Block height: $TC"
@@ -82,9 +82,9 @@ echo ""
 
 # ── 2. BSC Mainnet ────────────────────────────────────────────────────────────
 echo "▶ BSC Mainnet (domain 56)"
-BSC=$(evm_block "https://bsc.drpc.org")
+BSC=$(evm_block "https://bsc.drpc.org") || true
 if [ -z "$BSC" ]; then
-  BSC=$(evm_block "https://bsc.publicnode.com")
+  BSC=$(evm_block "https://bsc.publicnode.com") || true
 fi
 if [ -n "$BSC" ]; then
   ok "Block height: $BSC"
@@ -96,9 +96,9 @@ echo ""
 
 # ── 3. Ethereum Mainnet ───────────────────────────────────────────────────────
 echo "▶ Ethereum Mainnet (domain 1)"
-ETH=$(evm_block "https://ethereum.publicnode.com")
+ETH=$(evm_block "https://ethereum.publicnode.com") || true
 if [ -z "$ETH" ]; then
-  ETH=$(evm_block "https://eth.drpc.org")
+  ETH=$(evm_block "https://eth.drpc.org") || true
 fi
 if [ -n "$ETH" ]; then
   ok "Block height: $ETH"
@@ -110,7 +110,7 @@ echo ""
 
 # ── 4. Solana Mainnet ─────────────────────────────────────────────────────────
 echo "▶ Solana Mainnet (domain 1399811149)"
-SOL=$(solana_slot "https://api.mainnet-beta.solana.com")
+SOL=$(solana_slot "https://api.mainnet-beta.solana.com") || true
 if [ -n "$SOL" ]; then
   ok "Block height: $SOL"
 else

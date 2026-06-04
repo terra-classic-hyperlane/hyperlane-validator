@@ -162,7 +162,7 @@ hyperlane/relayer.mainnet.json          ← relayer config (db, all chain keys)
 
 ## Step 5 — Deploy to VPS (Native Binaries + systemd)
 
-The installer automates everything: block height update → binary build → upload → systemd setup.
+The installer automates everything: config generation → block height update → binary build → upload → systemd setup.
 
 ```bash
 chmod +x install-vps.sh
@@ -173,24 +173,85 @@ chmod +x install-vps.sh
 
 | Step | Action |
 |------|--------|
-| 1 | Runs `setup-config.sh` — validates and generates JSON configs |
+| 1 | Runs `setup-config.sh` — validates `.env` and generates JSON configs from templates |
 | 2 | Runs `check-block-height-mainnet.sh` — updates `index.from` for all 4 chains |
 | 3 | Tests SSH connection |
-| 4 | Creates remote directories on VPS |
-| 5 | Uploads config files to VPS |
-| 6 | Installs Rust (if missing), clones `hyperlane-monorepo`, builds `validator` + `relayer` |
-| 7 | Uploads binaries + runtime `config/` directory |
-| 8 | Creates `hyperlane-validator` and `hyperlane-relayer` systemd services |
-| 9 | Enables + starts both services and verifies status |
+| 4 | Creates remote directories: `bin/`, `config/`, `runtime/` |
+| 5 | Uploads config files and `.env` to VPS |
+| 6 | **Detects existing binaries** — asks whether to reuse them (skips 15-30 min compilation) |
+| 7 | Installs Rust (if missing), clones `hyperlane-monorepo`, builds `validator` + `relayer` if needed |
+| 8 | Uploads binaries + runtime `config/` directory via rsync |
+| 9 | Installs `hyperlane-validator` and `hyperlane-relayer` systemd services using `EnvironmentFile=` |
+| 10 | Enables + starts both services and verifies status |
+
+**All options:**
+
+```bash
+# Basic install (mainnet, native mode — recommended)
+./install-vps.sh --vps 1.2.3.4
+
+# Custom SSH user
+./install-vps.sh --vps 1.2.3.4 --user ubuntu
+
+# Custom SSH key
+./install-vps.sh --vps 1.2.3.4 --ssh-key ~/.ssh/my_key
+
+# Custom remote directory
+./install-vps.sh --vps 1.2.3.4 --dir /home/ubuntu/hyperlane
+
+# Testnet
+./install-vps.sh --vps 1.2.3.4 --network testnet
+
+# Docker mode (instead of native systemd)
+./install-vps.sh --vps 1.2.3.4 --mode docker
+
+# Reuse existing compiled binaries without asking (non-interactive)
+./install-vps.sh --vps 1.2.3.4 --yes
+
+# Force recompilation even if binaries already exist
+./install-vps.sh --vps 1.2.3.4 --force-rebuild
+```
+
+> **Binary reuse:** If `validator` and `relayer` binaries already exist in
+> `~/hyperlane-monorepo/rust/main/target/release/`, the installer asks whether to
+> reuse them instead of recompiling (~15-30 min saved). Use `--yes` to auto-confirm
+> or `--force-rebuild` to always recompile.
+
+---
+
+## Uninstalling / Full Reset
+
+Use `uninstall-vps.sh` to completely wipe Hyperlane from the VPS. This is essential
+before testing a fresh installation to ensure no leftover state.
+
+```bash
+chmod +x uninstall-vps.sh
+./uninstall-vps.sh --vps YOUR_VPS_IP
+```
+
+**What it removes:**
+- systemd services (`hyperlane-validator`, `hyperlane-relayer`) — stopped, disabled, unit files deleted
+- `/root/hyperlane/` — all binaries, configs, runtime files and `.env`
+- `/tmp/hyp/` — RocksDB cache for validator and relayer
+- Docker containers `hpl-*` and their volumes (if present)
 
 **Options:**
 
 ```bash
-./install-vps.sh --vps 1.2.3.4                           # mainnet, native (default)
-./install-vps.sh --vps 1.2.3.4 --user ubuntu             # custom SSH user
-./install-vps.sh --vps 1.2.3.4 --network testnet         # testnet
-./install-vps.sh --vps 1.2.3.4 --mode docker             # Docker instead of native
-./install-vps.sh --vps 1.2.3.4 --ssh-key ~/.ssh/id_rsa   # custom SSH key
+# Interactive confirmation (default — safe)
+./uninstall-vps.sh --vps 1.2.3.4
+
+# Skip confirmation prompt (for scripting)
+./uninstall-vps.sh --vps 1.2.3.4 --yes
+
+# Custom SSH user
+./uninstall-vps.sh --vps 1.2.3.4 --user ubuntu
+```
+
+**Full test cycle (uninstall then reinstall):**
+
+```bash
+./uninstall-vps.sh --vps 1.2.3.4 --yes && ./install-vps.sh --vps 1.2.3.4 --yes
 ```
 
 ---
@@ -424,16 +485,17 @@ tc-hyperlane-validator/
 ├── .env                                    ← All secrets (never commit)
 ├── .env.example                            ← Template — copy to .env
 │
-├── setup-config.sh                         ← Step 4: generates JSON from .env
-├── install-vps.sh                          ← Step 5: full VPS deployment
-├── check-block-height-mainnet.sh           ← Updates index.from (auto in installer)
-├── check-block-height.sh                   ← Mainnet + testnet query (manual)
+├── setup-config.sh                         ← Generates JSON configs from .env
+├── install-vps.sh                          ← Full automated VPS deployment
+├── uninstall-vps.sh                        ← Full VPS wipe / reset for fresh installs
+├── check-block-height-mainnet.sh           ← Updates index.from (runs automatically in installer)
+├── check-block-height.sh                   ← Manual block height query (mainnet + testnet)
 │
 ├── docker-compose.yml                      ← Mainnet Docker services (optional)
 ├── docker-compose-testnet.yml              ← Testnet Docker services (optional)
 │
 ├── hyperlane/                              ← Agent config files
-│   ├── agent-config.mainnet.json           ← Chain registry (mainnet) — auto-updated
+│   ├── agent-config.mainnet.json           ← Chain registry (mainnet) — auto-updated by installer
 │   ├── agent-config.testnet.json           ← Chain registry (testnet)
 │   │
 │   ├── validator.terraclassic.json.template  ← Template (committed, no real keys)
@@ -441,15 +503,15 @@ tc-hyperlane-validator/
 │   │
 │   ├── validator.terraclassic.json         ← Generated by setup-config.sh (gitignored)
 │   └── relayer.mainnet.json                ← Generated by setup-config.sh (gitignored)
-│
-└── doc/
-    └── INSTALL-VPS-PROMPT.md               ← Ready-to-use Claude prompts
 
-VPS structure (/root/hyperlane/):
+VPS layout (/root/hyperlane/):            ← Created by install-vps.sh
 ├── bin/validator                           ← Compiled binary
 ├── bin/relayer                             ← Compiled binary
-├── config/                                 ← JSON configs uploaded by installer
-└── runtime/config/                         ← hyperlane-monorepo config/ (required)
+├── config/agent-config.mainnet.json        ← Chain registry
+├── config/validator.terraclassic.json      ← Validator config (from .env)
+├── config/relayer.mainnet.json             ← Relayer config (from .env)
+├── runtime/config/mainnet_config.json      ← hyperlane-monorepo built-in config (required at startup)
+└── .env                                    ← Credentials read by systemd EnvironmentFile=
 
 AWS S3 (remote):
 └── hyperlane-validator-signatures-YOUR-NAME/
@@ -465,13 +527,13 @@ AWS S3 (remote):
 |----------|-------------|
 | [.env.example](./.env.example) | Template with all required environment variables |
 | [setup-config.sh](./setup-config.sh) | Generates JSON config files from `.env` using templates |
-| [install-vps.sh](./install-vps.sh) | Automated VPS installer (native binaries + systemd) |
-| [check-block-height-mainnet.sh](./check-block-height-mainnet.sh) | Queries & auto-updates `index.from` for all 4 mainnet chains |
-| [check-block-height.sh](./check-block-height.sh) | Manual block height query (mainnet + testnet) |
-| [doc/INSTALL-VPS-PROMPT.md](./doc/INSTALL-VPS-PROMPT.md) | Ready-to-use Claude prompts for automated installation |
+| [install-vps.sh](./install-vps.sh) | Automated VPS installer (native binaries + systemd). Detects existing binaries, skips recompilation when possible |
+| [uninstall-vps.sh](./uninstall-vps.sh) | Full VPS wipe — removes services, binaries, configs and cache. Use before a fresh install |
+| [check-block-height-mainnet.sh](./check-block-height-mainnet.sh) | Queries & auto-updates `index.from` for all 4 mainnet chains. Runs automatically inside the installer |
+| [check-block-height.sh](./check-block-height.sh) | Manual block height query (mainnet + testnet, dry-run only) |
 | [HYPERLANE-PRIVATE-KEYS-HEX.md](./HYPERLANE-PRIVATE-KEYS-HEX.md) | Full guide: generating hex private keys for ETH, BSC, Solana, Terra Classic |
 | [GUIDE-AWS-S3-AND-KEYS.md](./GUIDE-AWS-S3-AND-KEYS.md) | AWS S3 setup with IAM policy, bucket policy, and cost estimation |
-| [hyperlane-validator-relayer-vps-english.md](./hyperlane-validator-relayer-vps-english.md) | Full manual VPS guide (build, upload, systemd) |
+| [hyperlane-validator-relayer-vps-english.md](./hyperlane-validator-relayer-vps-english.md) | Full manual VPS guide (build, upload, systemd) — for reference |
 | [hyperlane-configuration-files-guide.md](./hyperlane-configuration-files-guide.md) | Detailed explanation of all JSON config fields — `index.from` and `blocks` |
 | [ARCHITECTURE-S3.md](./ARCHITECTURE-S3.md) | System architecture and S3 checkpoint flow |
 
@@ -481,14 +543,16 @@ AWS S3 (remote):
 
 | Problem | Likely Cause | Fix |
 |---------|-------------|-----|
-| `rate limit exceeded` | `index.from` too old | Run `./check-block-height-mainnet.sh` then restart agents |
-| `unable to reach quorum` | Validator not running or S3 not reachable | Check `journalctl -u hyperlane-validator` and S3 bucket |
-| `LOCK: Resource temporarily unavailable` | Two agents sharing same DB | Check `VALIDATOR_DB` ≠ `RELAYER_DB` in `.env` |
-| `invalid key format` | Key not 64 hex chars | Run `./setup-config.sh` — it validates format |
+| `rate limit exceeded` | `index.from` too old | Run `./check-block-height-mainnet.sh` then re-run installer or restart agents |
+| `unable to reach quorum` | Validator not running or S3 not reachable | Check `journalctl -u hyperlane-validator` and S3 bucket access |
+| `LOCK: Resource temporarily unavailable` | Two agents sharing same DB path | Ensure `VALIDATOR_DB` ≠ `RELAYER_DB` in `.env` |
+| `invalid character '0' at byte 3` | Private key missing `0x` prefix | Keys in `.env` must be `0x` + 64 hex chars — `setup-config.sh` validates this |
+| `Failed to open config directory` | Binary not running from `runtime/` directory | The `WorkingDirectory` in the systemd unit must point to the directory containing `config/` — the installer handles this automatically |
 | `Missing: S3_BUCKET` | Variable not set in `.env` | Run `cp .env.example .env` and fill all values |
 | `AccessDenied` on S3 | Wrong IAM credentials | Check `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` in `.env` |
-| `no providers in chain` | AWS credentials missing in systemd | Check service file has `Environment=AWS_ACCESS_KEY_ID=...` |
-| Disk full on VPS | DB stored in `/etc/data/` not `/tmp/` | Set `VALIDATOR_DB=/tmp/hyp/validator/db` in `.env` and re-run `setup-config.sh` |
+| Service starts then immediately exits | Credentials missing in systemd env | The installer uses `EnvironmentFile=` — verify `.env` was uploaded to VPS at `/root/hyperlane/.env` |
+| Disk full on VPS | DB stored in `/etc/data/` not `/tmp/` | Set `VALIDATOR_DB=/tmp/hyp/validator/db` in `.env` and re-run installer |
+| Cache lost after VPS reboot | `/tmp/hyp/` cleared on reboot | Expected — agents re-index from `index.from`. `ExecStartPre` recreates cache dirs automatically |
 
 ---
 
@@ -502,5 +566,5 @@ AWS S3 (remote):
 ---
 
 **Repository**: `tc-hyperlane-validator`  
-**Last updated**: 2026-06-03  
+**Last updated**: 2026-06-04  
 **Hyperlane Docs**: https://docs.hyperlane.xyz
