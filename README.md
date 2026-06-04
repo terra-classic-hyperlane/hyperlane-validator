@@ -562,7 +562,7 @@ AWS S3 (remote):
 - Never commit `.env` or JSON config files with private keys to Git
 - Set `chmod 600` on all sensitive files
 - Use separate wallets for testnet and mainnet
-- For production, prefer **AWS KMS** over plaintext hex keys
+- All chains in this setup use hex private keys (`0x` + 64 hex chars) — Terra Classic (`cosmosKey`) and Solana do not support AWS KMS, so hex is the only supported format across all chains
 
 ---
 
