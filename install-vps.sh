@@ -284,7 +284,6 @@ Type=simple
 WorkingDirectory=${VPS_DIR}/runtime
 EnvironmentFile=${VPS_DIR}/.env
 Environment=CONFIG_FILES=${VPS_DIR}/config/agent-config.${NETWORK}.json,${VPS_DIR}/config/validator.terraclassic.json
-Environment=RUST_LOG=info,hyperlane=debug
 ExecStartPre=/bin/bash -c 'mkdir -p /tmp/hyp/validator/cache'
 ExecStart=${VPS_DIR}/bin/validator \
   --db /tmp/hyp/validator/cache \
@@ -293,6 +292,8 @@ ExecStart=${VPS_DIR}/bin/validator \
   --metrics 0.0.0.0:9090
 Restart=always
 RestartSec=15
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
@@ -309,7 +310,6 @@ Type=simple
 WorkingDirectory=${VPS_DIR}/runtime
 EnvironmentFile=${VPS_DIR}/.env
 Environment=CONFIG_FILES=${VPS_DIR}/config/agent-config.${NETWORK}.json,${VPS_DIR}/config/relayer.${NETWORK}.json
-Environment=RUST_LOG=info,hyperlane=debug
 ExecStartPre=/bin/bash -c 'mkdir -p /tmp/hyp/relayer/cache'
 ExecStart=${VPS_DIR}/bin/relayer \
   --db /tmp/hyp/relayer/cache \
@@ -317,6 +317,8 @@ ExecStart=${VPS_DIR}/bin/relayer \
   --metrics 0.0.0.0:9091
 Restart=always
 RestartSec=15
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
@@ -331,19 +333,59 @@ UNIT"
   "
   ok "systemd services installed and started"
 
-  # ── Step 9: Configure journal size limit ───────────────────────────────────
-  log "Step 9 — Configuring systemd journal limits"
+  # ── Step 9: Configure journal size limit and stop syslog flooding ─────────
+  log "Step 9 — Configuring systemd journal limits and rsyslog filtering"
   $SSH "
     mkdir -p /etc/systemd/journald.conf.d
     cat > /etc/systemd/journald.conf.d/hyperlane.conf << 'EOF'
 [Journal]
+ForwardToSyslog=no
 SystemMaxUse=500M
 SystemKeepFree=500M
 MaxRetentionSec=7day
 EOF
     systemctl restart systemd-journald
   "
-  ok "Journal limited to 500 MB / 7 days (config: /etc/systemd/journald.conf.d/hyperlane.conf)"
+  ok "Journal limited to 500 MB / 7 days, ForwardToSyslog disabled"
+
+  # Drop relayer/validator from /var/log/syslog — they stay in the journal only.
+  # Without this rule, rsyslog reads from /run/systemd/journal/syslog and floods /var/log/syslog
+  # with ~3.7 GB/day of INFO spam even when ForwardToSyslog=no is set.
+  $SSH "
+    cat > /etc/rsyslog.d/49-hyperlane-drop.conf << 'EOF'
+# Drop relayer and validator messages from /var/log/syslog.
+# Their logs are retained in the systemd journal (capped at 500 MB).
+if \\\$programname == \"relayer\" then stop
+if \\\$programname == \"validator\" then stop
+EOF
+    systemctl restart rsyslog
+  "
+  ok "rsyslog filter installed: relayer/validator logs go to journal only"
+
+  log "Step 9b — Configuring logrotate for daily syslog rotation"
+  $SSH "
+    cat > /etc/logrotate.d/rsyslog << 'EOF'
+/var/log/syslog
+/var/log/mail.log
+/var/log/kern.log
+/var/log/auth.log
+/var/log/user.log
+/var/log/cron.log
+{
+    rotate 7
+    daily
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        /usr/lib/rsyslog/rsyslog-rotate
+    endscript
+}
+EOF
+  "
+  ok "logrotate set to daily rotation, 7 days retention"
 
   # ── Step 10: Verify ────────────────────────────────────────────────────────
   log "Step 10 — Verifying service status"

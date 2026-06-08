@@ -483,6 +483,7 @@ StandardOutput=journal
 StandardError=journal
 
 Environment=HOME=/root
+Environment=RUST_LOG=warn
 
 [Install]
 WantedBy=multi-user.target
@@ -515,6 +516,7 @@ StandardOutput=journal
 StandardError=journal
 
 Environment=HOME=/root
+Environment=RUST_LOG=warn
 
 [Install]
 WantedBy=multi-user.target
@@ -635,37 +637,61 @@ enabled
 
 ---
 
-## 28. Limit journalctl logs to 3GB
+## 28. Control log verbosity (RUST_LOG)
 
-Edit the journald configuration:
+The Hyperlane relayer and validator generate **~3.7 GB/day** of logs when running at the `info` level.
+
+Set `RUST_LOG=warn` to log only warnings and errors:
 
 ```bash
-cat > /etc/systemd/journald.conf <<'EOF'
-[Journal]
-Storage=persistent
-
-Compress=yes
-Seal=yes
-SplitMode=uid
-
-SystemMaxUse=3G
-SystemKeepFree=2G
-
-RuntimeMaxUse=512M
-RuntimeKeepFree=512M
-
-MaxFileSec=1month
-MaxRetentionSec=0
-
-ForwardToSyslog=no
-ForwardToKMsg=no
-ForwardToConsole=no
-EOF
+# Add to .env file or systemd service
+RUST_LOG=warn
 ```
 
-Apply:
+Available levels (quietest to most verbose):
+- `error` — critical failures only
+- `warn` — warnings and errors (recommended for production)
+- `info` — detailed operational logs (~3.7 GB/day — NOT recommended)
+- `debug` — very verbose, only for targeted debugging
+
+---
+
+## 29. Prevent relayer logs from flooding /var/log/syslog
+
+rsyslog captures all messages from systemd services and writes them to `/var/log/syslog`.
+Without filtering, the relayer can fill the disk with ~3.7 GB/day of INFO spam even with `RUST_LOG=warn`.
+
+Create an rsyslog filter to drop relayer and validator messages from syslog
+(they remain accessible via `journalctl`):
 
 ```bash
+cat > /etc/rsyslog.d/49-hyperlane-drop.conf <<'EOF'
+# Drop relayer and validator messages from /var/log/syslog.
+# Their logs are retained in the systemd journal (capped at 500 MB).
+if $programname == "relayer" then stop
+if $programname == "validator" then stop
+EOF
+
+systemctl restart rsyslog
+```
+
+---
+
+## 30. Limit journalctl logs to 500 MB
+
+Create a configuration file in `/etc/systemd/journald.conf.d/`:
+
+```bash
+mkdir -p /etc/systemd/journald.conf.d
+
+cat > /etc/systemd/journald.conf.d/hyperlane.conf <<'EOF'
+[Journal]
+ForwardToSyslog=no
+SystemMaxUse=500M
+SystemKeepFree=500M
+MaxRetentionSec=7day
+EOF
+
 systemctl restart systemd-journald
 ```
 
@@ -675,32 +701,54 @@ Check disk usage:
 journalctl --disk-usage
 ```
 
-Force immediate cleanup while keeping a maximum of 3GB:
+Force immediate cleanup while keeping a maximum of 500 MB:
 
 ```bash
 journalctl --rotate
-journalctl --vacuum-size=3G
+journalctl --vacuum-size=500M
 ```
 
 ---
 
-## 29. How journalctl cleans logs
+## 31. How journalctl cleans logs
 
-With:
+With `SystemMaxUse=500M`, Linux keeps at most 500 MB of logs.
+
+When it exceeds this size, it removes the oldest logs first automatically.
+
+---
+
+## 32. Fix logrotate for daily rotation
+
+By default, logrotate rotates `/var/log/syslog` weekly with 4 copies.
+For small disks, configure daily rotation with 7 days retention:
 
 ```bash
-SystemMaxUse=3G
+cat > /etc/logrotate.d/rsyslog <<'EOF'
+/var/log/syslog
+/var/log/mail.log
+/var/log/kern.log
+/var/log/auth.log
+/var/log/user.log
+/var/log/cron.log
+{
+    rotate 7
+    daily
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        /usr/lib/rsyslog/rsyslog-rotate
+    endscript
+}
+EOF
 ```
-
-Linux keeps at most 3GB of logs.
-
-When it exceeds this size, it removes the oldest logs first.
-
-It does not delete everything at once.
 
 ---
 
-## 30. Monitor cache size
+## 33. Monitor cache size
 
 Validator:
 
@@ -716,7 +764,7 @@ du -sh /tmp/hyp/relayer/terraclassic-cache
 
 ---
 
-## 31. Manually clean temporary cache
+## 34. Manually clean temporary cache
 
 Stop the services first:
 
@@ -744,7 +792,7 @@ systemctl start hyperlane-relayer
 
 ---
 
-## 32. Fix RocksDB LOCK error
+## 35. Fix RocksDB LOCK error
 
 Common error:
 
@@ -786,7 +834,7 @@ systemctl start hyperlane-relayer
 
 ---
 
-## 33. Fix AWS credentials error
+## 36. Fix AWS credentials error
 
 Common error:
 
@@ -819,7 +867,7 @@ systemctl restart hyperlane-validator
 
 ---
 
-## 34. Future binary updates
+## 37. Future binary updates
 
 On the local machine:
 
@@ -847,7 +895,7 @@ systemctl restart hyperlane-relayer
 
 ---
 
-## 35. Main commands
+## 38. Main commands
 
 Status:
 
@@ -906,7 +954,7 @@ du -sh /tmp/hyp/relayer/terraclassic-cache
 
 ---
 
-## 36. Final VPS structure
+## 39. Final VPS structure
 
 ```bash
 /root/hyperlane-bin/
@@ -932,7 +980,7 @@ du -sh /tmp/hyp/relayer/terraclassic-cache
 
 ---
 
-## 37. Final recommendation
+## 40. Final recommendation
 
 Always use `systemd` for production.
 
@@ -943,5 +991,8 @@ With `systemd` and `journalctl`:
 - services restart automatically
 - services start with the server
 - logs are managed by Linux
-- the 3GB limit prevents the disk from filling up
+- `RUST_LOG=warn` eliminates INFO spam (~3.7 GB/day)
+- rsyslog filter (`/etc/rsyslog.d/49-hyperlane-drop.conf`) keeps syslog clean
+- 500 MB journal limit prevents the disk from filling up
+- daily logrotate keeps `/var/log/syslog` under control
 - DB/cache stays in `/tmp/hyp`, avoiding persistent growth
