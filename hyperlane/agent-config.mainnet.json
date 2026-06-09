@@ -11,7 +11,7 @@
       ],
       "slip44": 330,
       "name": "terraclassic",
-      "domainId": 1325,
+      "domainId": 132556,
       "chainId": "columbus-5",
       "protocol": "cosmos",
       "rpcUrls": [
@@ -53,15 +53,15 @@
         "reorgPeriod": 1
       },
       "index": {
-        "from": 28905457,
+        "from": 28985045,
         "chunk": 5
       },
       "contractAddressBytes": 32,
-      "mailbox": "0x0678bdcb1376efbe6d9537c4306d9d7eebc835dafafdbe92de725de42570669c",
-      "validatorAnnounce": "0x923c57d40a8be893837a0dcf21169cc8bdc9b714f39b56a3a92ed89361d4915c",
-      "interchainGasPaymaster": "0x4ea67ec195ce01295d89a7b011a312709b522b73c043a46305a21aa56ff298f1",
-      "merkleTreeHook": "0xcb5cd50ee115ffe8f0804aab8c1c417ca9fcf31e56fcd32f684e10c09032d753",
-      "interchainSecurityModule": "0x43623ca83b646a3e3bfbddc0778161d180b3dd68901ac84b58f8aef7653a87b6",
+      "mailbox": "0x4b911a4e9984913279a709a623f2120ba0c0a3967acd026b1301894398a96fed",
+      "validatorAnnounce": "0x42e7b6e599b20c160b328b92453f2a9c63446e3be3a5a465bc31ba7d4a26f3f0",
+      "interchainGasPaymaster": "0x5f793ba34a28e104c505896601bef42d414dc20313654fd8cab911b36efe522e",
+      "merkleTreeHook": "0x3c7e0d10013db710c6b8322dab479e3f0950fc1dbe49a1cf3e9950429db9f8ca",
+      "interchainSecurityModule": "0xe5c4262ca68f0f794ec1d1697b7f2632b8474989032b4ab4b16c0aa8216175bc",
       "gas": {
         "adjustment": 1.5,
         "min_gas_amount": 2000000
@@ -115,7 +115,7 @@
         "reorgPeriod": 15
       },
       "index": {
-        "from": 102177162,
+        "from": 103220523,
         "chunk": 10
       },
       "mailbox": "0x2971b9Aec44bE4eb673DF1B88cDB57b96eefe8a4",
@@ -162,7 +162,7 @@
         "reorgPeriod": 15
       },
       "index": {
-        "from": 25240762,
+        "from": 25279766,
         "chunk": 10
       },
       "mailbox": "0xc005dc82818d67AF737725bD4bf75435d065D239",
@@ -199,7 +199,7 @@
         "reorgPeriod": 0
       },
       "index": {
-        "from": 402227784,
+        "from": 403405949,
         "chunk": 10
       },
       "mailbox": "E588QtVUvresuXq2KoNEwAmoifCzYGpRBdHByN9KQMbi",
